@@ -48,14 +48,6 @@ class AddScaledLogitsModel(ModelBaseClass):
             self.relevance_question = relevance_question
 
     # @tf.function(jit_compile=True)
-    def compute_loss(self, outputs, tests):
-        location, answer_prob = self.get_answer_prob(outputs, tests)
-        return tf.nn.sparse_softmax_cross_entropy_with_logits(
-                logits=answer_prob,
-                labels=[self.vocab_dict[location[i]] for i in range(len(location))]
-        )
-
-    # @tf.function(jit_compile=True)
     def get_answer_prob(self, outputs, tests):
         num_wires = outputs.shape[1] // self.wire_dimension
         output_wires = tf.split(outputs, num_wires, axis=1)

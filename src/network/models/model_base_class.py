@@ -1,5 +1,6 @@
 from abc import abstractmethod, ABC
 
+import tensorflow as tf
 from tensorflow import keras
 
 
@@ -11,6 +12,16 @@ class ModelBaseClass(keras.layers.Layer, ABC):
     @abstractmethod
     def get_answer_prob(self, outputs, tests):
         pass
+
+    # @tf.function(jit_compile=True)
+    def compute_loss(self, outputs, tests):
+        location, answer_prob = self.get_answer_prob(outputs, tests)
+        loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
+            logits=answer_prob,
+            labels=[self.get_expected_result(location[i])
+                        for i in range(len(location))]
+        )
+        return loss
 
     @abstractmethod
     def get_prediction_result(self, call_result):

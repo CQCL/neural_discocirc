@@ -24,13 +24,6 @@ class IsInModel(ModelBaseClass):
             self.is_in_question = is_in_question
 
     # @tf.function(jit_compile=True)
-    def compute_loss(self, outputs, tests):
-        location, answer_prob = self.get_answer_prob(outputs, tests)
-        loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            logits=answer_prob, labels=location)
-        return loss
-
-    # @tf.function(jit_compile=True)
     def get_answer_prob(self, outputs, tests):
         num_wires = outputs.shape[1] // self.wire_dimension
         output_wires = tf.split(outputs, num_wires, axis=1)
