@@ -1,17 +1,9 @@
 import os
 import shutil
 
-from network.big_network_models.add_scaled_logits_one_networks import \
-    AddScaledLogitsOneNetworkTrainer
-from network.big_network_models.is_in_one_network import \
-    IsInOneNetworkTrainer
+from network.big_network_models.is_in_one_network import IsInOneNetworkTrainer
 from network.big_network_models.one_network_trainer_base import \
     OneNetworkTrainer
-
-from network.individual_networks_models.is_in_trainer import \
-    IsInIndividualNetworksTrainer
-from network.individual_networks_models.individual_networks_trainer_base_class import \
-    IndividualNetworksTrainer
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import pickle
@@ -27,8 +19,8 @@ from network.utils.callbacks import ValidationAccuracy, \
 from sklearn.model_selection import train_test_split
 
 # this should the the path to \Neural-DisCoCirc
-# base_path = os.path.abspath('..')
-base_path = os.path.abspath('.')
+base_path = os.path.abspath('..')
+# base_path = os.path.abspath('.')
 config = {
     "batch_size": 32,
     "dataset": "add_logits_dataset_task1_train.pkl",
@@ -41,11 +33,15 @@ config = {
 }
 model_config = {
     "hidden_layers": [10, 10],
-    "is_in_hidden_layers": [10, 10],
+    # "is_in_hidden_layers": [10, 10],
     "wire_dimension": 10,
-    "softmax_relevancies": False,
-    "softmax_logits": False,
-    "relevance_hidden_layers": [10, 10],
+    # "softmax_relevancies": False,
+    # "softmax_logits": False,
+    # "relevance_hidden_layers": [10, 10],
+    "expansion_hidden_layers": [20, 50],
+    "contraction_hidden_layers": [50, 20],
+    "latent_dimension": 100,
+    "textspace_dimension": 20,
 }
 config.update(model_config)
 
@@ -117,6 +113,9 @@ def train(base_path, save_path, vocab_path,
 
     accuracy = discocirc_trainer.get_accuracy(discocirc_trainer.dataset)
     print("The accuracy on the train set is", accuracy)
+
+    if config["log_wandb"]:
+        wandb.log({"train_accuracy": accuracy})
 
     save_base_path = base_path + save_path + model_class.__name__
     Path(save_base_path).mkdir(parents=True, exist_ok=True)

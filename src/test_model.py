@@ -6,6 +6,8 @@ from pandas import DataFrame
 import pickle
 from tensorflow import keras
 
+from network.big_network_models.add_scaled_logits_one_network import \
+    AddScaledLogitsOneNetworkTrainer
 from network.big_network_models.is_in_one_network import \
     IsInOneNetworkTrainer
 from network.big_network_models.one_network_trainer_base import OneNetworkTrainer
@@ -17,8 +19,8 @@ from network.individual_networks_models.is_in_trainer import \
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # this should the the path to \Neural-DisCoCirc
-# base_path = os.path.abspath('..')
-base_path = os.path.abspath('.')
+base_path = os.path.abspath('..')
+# base_path = os.path.abspath('.')
 
 config = {
     "trainer": OneNetworkTrainer,
