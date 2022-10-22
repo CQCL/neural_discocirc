@@ -5,11 +5,11 @@ import numpy as np
 import tensorflow as tf
 
 from network.individual_networks_models.individual_networks_trainer_base_class import \
-    IndividualNetworksTrainerBase
+    IndividualNetworksTrainer
 from network.utils.utils import create_feedforward_network
 
 
-class IsInIndividualNetworksTrainer(IndividualNetworksTrainerBase, ABC):
+class IsInIndividualNetworksTrainer(IndividualNetworksTrainer, ABC):
     def __init__(self, lexicon=None, wire_dimension=10, is_in_question=None, is_in_hidden_layers=[10], **kwargs):
         super().__init__(lexicon, **kwargs)
         if is_in_question is None:

@@ -5,12 +5,12 @@ import tensorflow as tf
 from tensorflow import keras
 
 from network.individual_networks_models.individual_networks_trainer_base_class import \
-    IndividualNetworksTrainerBase
+    IndividualNetworksTrainer
 from network.utils.circuit_to_textspace import TextSpace
 from network.utils.utils import get_classification_vocab
 
 
-class TextspaceIndividualNetworksTrainer(IndividualNetworksTrainerBase):
+class TextspaceIndividualNetworksTrainer(IndividualNetworksTrainer):
     def __init__(self, 
                  nn_boxes,
                  wire_dimension,

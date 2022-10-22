@@ -1,13 +1,12 @@
 import numpy as np
 import tensorflow as tf
-from sklearn.metrics import accuracy_score
 from tensorflow import keras
 
-from network.big_network_models.one_network_trainer_base import OneNetworkTrainerBase
+from network.big_network_models.one_network_trainer_base import OneNetworkTrainer
 from network.utils.utils import create_feedforward_network
 
 
-class AddScaledLogitsOneNetworkTrainer(OneNetworkTrainerBase):
+class AddScaledLogitsOneNetworkTrainer(keras.layers.Layer):
     def __init__(self,
                  softmax_relevancies=True,
                  softmax_logits=True,
@@ -21,7 +20,7 @@ class AddScaledLogitsOneNetworkTrainer(OneNetworkTrainerBase):
                  relevance_hidden_layers=[10, 10],
                  **kwargs
             ):
-        super(AddScaledLogitsOneNetworkTrainer, self).__init__(lexicon=lexicon, wire_dimension=wire_dimension, hidden_layers=hidden_layers, **kwargs)
+        super().__init__(lexicon=lexicon, wire_dimension=wire_dimension, hidden_layers=hidden_layers, **kwargs)
 
         self.softmax_relevancies = softmax_relevancies
         self.softmax_logits = softmax_logits

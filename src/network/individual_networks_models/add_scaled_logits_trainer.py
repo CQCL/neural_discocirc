@@ -4,11 +4,11 @@ import numpy as np
 import tensorflow as tf
 
 from network.individual_networks_models.individual_networks_trainer_base_class import \
-    IndividualNetworksTrainerBase
+    IndividualNetworksTrainer
 from network.utils.utils import create_feedforward_network
 
 
-class AddScaledLogitsIndividualNetworksTrainer(IndividualNetworksTrainerBase):
+class AddScaledLogitsIndividualNetworksTrainer(IndividualNetworksTrainer):
     def __init__(self,
                  nn_boxes,
                  wire_dimension,

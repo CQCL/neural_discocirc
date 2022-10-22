@@ -3,11 +3,11 @@ import tensorflow as tf
 from sklearn.metrics import accuracy_score
 from tensorflow import keras
 
-from network.big_network_models.one_network_trainer_base import OneNetworkTrainerBase
+from network.big_network_models.one_network_trainer_base import OneNetworkTrainer
 from network.utils.utils import create_feedforward_network
 
 
-class AddLogitsOneNetworkTrainer(OneNetworkTrainerBase):
+class AddLogitsOneNetworkTrainer(OneNetworkTrainer):
     def __init__(self,
                  softmax_logits=True,
                  vocab_dict=None,

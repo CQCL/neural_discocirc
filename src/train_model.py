@@ -6,12 +6,12 @@ from network.big_network_models.add_scaled_logits_one_networks import \
 from network.big_network_models.is_in_one_network import \
     IsInOneNetworkTrainer
 from network.big_network_models.one_network_trainer_base import \
-    OneNetworkTrainerBase
+    OneNetworkTrainer
 
 from network.individual_networks_models.is_in_trainer import \
     IsInIndividualNetworksTrainer
 from network.individual_networks_models.individual_networks_trainer_base_class import \
-    IndividualNetworksTrainerBase
+    IndividualNetworksTrainer
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import pickle
@@ -27,15 +27,16 @@ from network.utils.callbacks import ValidationAccuracy, \
 from sklearn.model_selection import train_test_split
 
 # this should the the path to \Neural-DisCoCirc
-base_path = os.path.abspath('..')
-# base_path = os.path.abspath('.')
+# base_path = os.path.abspath('..')
+base_path = os.path.abspath('.')
 config = {
     "batch_size": 32,
     "dataset": "add_logits_dataset_task1_train.pkl",
     "epochs": 100,
     "learning_rate": 0.001,
     "log_wandb": False,
-    "trainer": AddScaledLogitsOneNetworkTrainer,
+    "model": IsInOneNetworkTrainer,
+    "trainer": OneNetworkTrainer, # or IndividualNetworksTrainer,
     "vocab": "en_qa1.p",
 }
 model_config = {
@@ -51,10 +52,10 @@ config.update(model_config)
 
 def train(base_path, save_path, vocab_path,
           data_path):
-    trainer_class = config['trainer']
+    model_class = config['model']
 
     print('Training: {} with data {}'
-          .format(trainer_class.__name__, config["dataset"]))
+          .format(model_class.__name__, config["dataset"]))
 
     print('loading vocabulary...')
     with open(base_path + vocab_path + config["vocab"], 'rb') as file:
@@ -62,7 +63,7 @@ def train(base_path, save_path, vocab_path,
 
     print('initializing model...')
 
-    discocirc_trainer = trainer_class(lexicon=lexicon, **model_config)
+    discocirc_trainer = config['trainer'](lexicon=lexicon, model_class=model_class, **model_config)
 
     print('loading pickled dataset...')
     with open(base_path + data_path + config['dataset'],
@@ -117,9 +118,9 @@ def train(base_path, save_path, vocab_path,
     accuracy = discocirc_trainer.get_accuracy(discocirc_trainer.dataset)
     print("The accuracy on the train set is", accuracy)
 
-    save_base_path = base_path + save_path + trainer_class.__name__
+    save_base_path = base_path + save_path + model_class.__name__
     Path(save_base_path).mkdir(parents=True, exist_ok=True)
-    name = save_base_path + "/" + trainer_class.__name__ + "_" \
+    name = save_base_path + "/" + model_class.__name__ + "_" \
            + datetime.utcnow().strftime("%h_%d_%H_%M")
 
 

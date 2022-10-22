@@ -1,6 +1,4 @@
-import pickle
-from abc import ABC, abstractmethod
-
+from discopy.monoidal import Diagram
 import tensorflow as tf
 from sklearn.metrics import accuracy_score
 from tensorflow import keras
@@ -8,10 +6,14 @@ from tensorflow import keras
 from network.utils.utils import get_fast_nn_functor, initialize_boxes
 
 
-class IndividualNetworksTrainerBase(ABC, keras.Model):
-    def __init__(self, lexicon=None, wire_dimension=10, hidden_layers=[10, 10],
-                     **kwargs):
-        super(IndividualNetworksTrainerBase, self).__init__(**kwargs)
+class IndividualNetworksTrainer(keras.Model):
+    def __init__(self,
+                 lexicon=None,
+                 wire_dimension=10,
+                 hidden_layers=[10, 10],
+                 model_class=None,
+                 **kwargs):
+        super().__init__()
         if lexicon is not None:
             self.nn_boxes = initialize_boxes(lexicon, wire_dimension, hidden_layers)
             self.nn_functor = get_fast_nn_functor(self.nn_boxes, wire_dimension)
@@ -19,6 +21,8 @@ class IndividualNetworksTrainerBase(ABC, keras.Model):
         self.wire_dimension = wire_dimension
         self.dataset = None
         self.lexicon = lexicon
+        if model_class is not None:
+            self.model_class = model_class(wire_dimension=wire_dimension, **kwargs)
         self.loss_tracker = keras.metrics.Mean(name="loss")
 
     def get_config(self):
@@ -32,10 +36,10 @@ class IndividualNetworksTrainerBase(ABC, keras.Model):
         return cls(**config)
 
     @classmethod
-    def load_model(cls, path):
+    def load_model(cls, path, model_class):
         model = keras.models.load_model(
             path,
-            custom_objects={cls.__name__: cls},
+            custom_objects={cls.__name__: cls, model_class.__name__: model_class},
         )
         model.nn_functor = get_fast_nn_functor(model.nn_boxes, model.wire_dimension)
         model.run_eagerly = True
@@ -84,53 +88,36 @@ class IndividualNetworksTrainerBase(ABC, keras.Model):
     def train_step_for_sample(self, dataset):
         with tf.GradientTape() as tape:
             context_circuit_model, test = dataset
-            loss = self.compute_loss(context_circuit_model, test)
+            output_vector = self.call(context_circuit_model)
+            loss = self.model_class.compute_loss(output_vector, [test])
             grad = tape.gradient(loss, self.trainable_weights,
                                  unconnected_gradients=tf.UnconnectedGradients.ZERO)
         return loss, grad
 
-    @abstractmethod
-    def get_prediction_result(self, call_result):
-        """
-        Given the result of a single call to the network,
-        give the prediction of the network.
-
-        :param call_result: The results from self.call(...)
-        :return: The prediction of the model,
-            i.e. the number of the correct wire or the index of the correct word.
-        """
-        pass
-
-    @abstractmethod
-    def get_expected_result(self, given_value):
-        """
-        Given the ground truth in the dataset, translate into value that model
-        should predict after calling get_prediction_result()
-        on the output of the network.
-
-        :param given_value: The ground truth given in the dataset.
-        :return: The expected output of the model.
-        """
-        pass
+    def call(self, circuit):
+        return circuit(tf.convert_to_tensor([[]]))
 
     def get_accuracy(self, dataset):
         location_predicted = []
         location_true = []
+        if type(dataset[0][0]) == Diagram:
+            dataset = self.compile_dataset(dataset)
         for i in range(len(dataset)):
             print('predicting {} / {}'.format(i, len(dataset)), end='\r')
 
             data = dataset[i]
-            probs = self((data[0], data[1][0]))
+            outputs = self.call(data[0])
+            _, answer_prob = self.model_class._get_answer_prob(outputs, [dataset[i][1]])
 
-            location_predicted.append(self.get_prediction_result(probs))
-            location_true.append(self.get_expected_result(data[1][1]))
+            location_predicted.append(
+                self.model_class.get_prediction_result(answer_prob)
+            )
+            location_true.append(
+                self.model_class.get_expected_result(data[1][1])
+            )
 
         accuracy = accuracy_score(location_true, location_predicted)
         return accuracy
-
-    @abstractmethod
-    def compute_loss(self, context_circuit_model, test):
-        pass
 
     def fit(self, train_dataset, validation_dataset, epochs, batch_size=32, **kwargs):
         print('compiling train dataset (size: {})...'.
@@ -148,5 +135,5 @@ class IndividualNetworksTrainerBase(ABC, keras.Model):
         input_index_dataset = input_index_dataset.shuffle(self.dataset_size)
         input_index_dataset = input_index_dataset.batch(batch_size)
 
-        return super(IndividualNetworksTrainerBase, self).fit(input_index_dataset,
+        return super(IndividualNetworksTrainer, self).fit(input_index_dataset,
                                                               epochs=epochs, **kwargs)

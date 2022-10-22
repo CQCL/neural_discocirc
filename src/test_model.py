@@ -8,22 +8,24 @@ from tensorflow import keras
 
 from network.big_network_models.is_in_one_network import \
     IsInOneNetworkTrainer
+from network.big_network_models.one_network_trainer_base import OneNetworkTrainer
 from network.individual_networks_models.individual_networks_trainer_base_class import \
-    IndividualNetworksTrainerBase
+    IndividualNetworksTrainer
 from network.individual_networks_models.is_in_trainer import \
     IsInIndividualNetworksTrainer
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # this should the the path to \Neural-DisCoCirc
-base_path = os.path.abspath('..')
-# base_path = os.path.abspath('.')
+# base_path = os.path.abspath('..')
+base_path = os.path.abspath('.')
 
 config = {
-    "trainer": IsInOneNetworkTrainer,
+    "trainer": OneNetworkTrainer,
+    "model_class": IsInOneNetworkTrainer,
     "dataset": "isin_dataset_task1_test.pkl",
     "vocab": "en_qa1.p",
-    "model": "IsInOneNetworkTrainer/IsInOneNetworkTrainer_Oct_05_22_17.pkl"
+    "model": "IsInOneNetworkTrainer/IsInOneNetworkTrainer_Oct_12_16_36"
 }
 
 def create_answer_dataframe(discocirc_trainer, vocab_dict, dataset):
@@ -63,16 +65,13 @@ def test(base_path, model_path, vocab_path, test_path):
         lexicon = pickle.load(file)
 
     print('initializing model...')
-    discocirc_trainer = trainer_class.load_model(model_base_path)
+    discocirc_trainer = trainer_class.load_model(model_base_path, config['model_class'])
 
     print('loading pickled dataset...')
     with open(test_base_path, "rb") as f:
         dataset = pickle.load(f)[:5]
 
     print('compiling dataset (size: {})...'.format(len(dataset)))
-
-    if issubclass(discocirc_trainer, IndividualNetworksTrainerBase):
-        discocirc_trainer.dataset = discocirc_trainer.compile_dataset(dataset)
 
     discocirc_trainer.compile(optimizer=keras.optimizers.Adam(),
                               run_eagerly=True)

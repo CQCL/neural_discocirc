@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 import numpy as np
 from discopy import Box, Ty
 from discopy.monoidal import Swap
@@ -15,17 +14,21 @@ class MyDenseLayer(keras.layers.Layer):
         return tf.where(tf.cast(mask, dtype=tf.bool), tf.nn.relu(out), out)
 
 
-class OneNetworkTrainerBase(keras.Model, ABC):
+class OneNetworkTrainer(keras.Model):
     def __init__(self,
-        lexicon,
-        wire_dimension,
-        hidden_layers,
+        lexicon=None,
+        wire_dimension=10,
+        hidden_layers=[10, 10],
+        model_class=None,
+        **kwargs
     ):
         super().__init__()
         self.wire_dimension = wire_dimension
         self.hidden_layers = hidden_layers
         self.dense_layer = MyDenseLayer()
         self.lexicon = lexicon
+        if model_class is not None:
+            self.model_class = model_class(wire_dimension=wire_dimension, **kwargs)
         if lexicon:
             self.initialize_lexicon_weights(lexicon)
         self.loss_tracker = keras.metrics.Mean(name="loss")
@@ -248,7 +251,7 @@ class OneNetworkTrainerBase(keras.Model, ABC):
         with tf.GradientTape() as tape:
             batched_params = self.batch_diagrams(diagrams_params)
             outputs = self.call(batched_params)
-            loss = self.compute_loss(outputs, tests)
+            loss = self.model_class.compute_loss(outputs, tests)
             grads = tape.gradient(loss, self.trainable_weights)
         self.optimizer.apply_gradients(
             (grad, weights)
@@ -309,9 +312,6 @@ class OneNetworkTrainerBase(keras.Model, ABC):
             output = self.dense_layer(output, weight, bias, mask)
         return output
 
-    @abstractmethod
-    def compute_loss(self, outputs, tests):
-        pass
 
     # ----------------------------------------------------------------
     # Accuracy
@@ -332,38 +332,18 @@ class OneNetworkTrainerBase(keras.Model, ABC):
             diagrams_params = [diagram_parameters[repr(dataset[i][0])]]
             batched_params = self.batch_diagrams(diagrams_params)
             outputs = self.call(batched_params)
-            _, answer_prob = self._get_answer_prob(outputs, [dataset[i][1]])
+            _, answer_prob = self.model_class._get_answer_prob(outputs, [dataset[i][1]])
 
-            location_predicted.append(self.get_prediction_result(answer_prob))
-            location_true.append(self.get_expected_result(dataset[i][1][1]))
+            location_predicted.append(
+                self.model_class.get_prediction_result(answer_prob)
+            )
+            location_true.append(
+                self.model_class.get_expected_result(dataset[i][1][1])
+            )
 
         accuracy = accuracy_score(location_true, location_predicted)
         return accuracy
 
-
-    @abstractmethod
-    def get_prediction_result(self, call_result):
-        """
-        Given the result of a single call to the network,
-        give the prediction of the network.
-
-        :param call_result: The results from self.call(...)
-        :return: The prediction of the model,
-            i.e. the number of the correct wire or the index of the correct word.
-        """
-        pass
-
-    @abstractmethod
-    def get_expected_result(self, given_value):
-        """
-        Given the ground truth in the dataset, translate into value that model
-        should predict after calling get_prediction_result()
-        on the output of the network.
-
-        :param given_value: The ground truth given in the dataset.
-        :return: The expected output of the model.
-        """
-        pass
 
     # ----------------------------------------------------------------
     # SAVING AND LOADING
@@ -379,10 +359,10 @@ class OneNetworkTrainerBase(keras.Model, ABC):
         return cls(**config)
     
     @classmethod
-    def load_model(cls, path):
+    def load_model(cls, path, model_class):
         model = keras.models.load_model(
             path,
-            custom_objects = {cls.__name__: cls},
+            custom_objects={cls.__name__: cls, model_class.__name__: model_class},
         )
         model.run_eagerly = True
         model.get_lexicon_params_from_saved_variables()
