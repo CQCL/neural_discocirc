@@ -1,24 +1,20 @@
 import numpy as np
 import tensorflow as tf
-from sklearn.metrics import accuracy_score
-from tensorflow import keras
 
-from network.big_network_models.one_network_trainer_base import OneNetworkTrainer
+from network.models.model_base_class import ModelBaseClass
 from network.utils.utils import create_feedforward_network
 
 
-class AddLogitsOneNetworkTrainer(OneNetworkTrainer):
+class AddLogitsModel(ModelBaseClass):
     def __init__(self,
-                 softmax_logits=True,
+                 wire_dimension,
+                 is_in_hidden_layers,
+                 softmax_logits,
                  vocab_dict=None,
                  lexicon=None,
-                 hidden_layers=[10, 10],
-                 wire_dimension=10,
                  is_in_question=None,
-                 is_in_hidden_layers=[10, 10],
-                 **kwargs
             ):
-        super(AddLogitsOneNetworkTrainer, self).__init__(lexicon=lexicon, wire_dimension=wire_dimension, hidden_layers=hidden_layers, **kwargs)
+        super().__init__(wire_dimension=wire_dimension)
 
         self.softmax_logits = softmax_logits
 
@@ -31,23 +27,23 @@ class AddLogitsOneNetworkTrainer(OneNetworkTrainer):
 
         if is_in_question is None:
             self.is_in_question = create_feedforward_network(
-                input_dim = 2 * wire_dimension,
-                output_dim = len(self.vocab_dict),
-                hidden_layers = is_in_hidden_layers
+                input_dim=2 * wire_dimension,
+                output_dim=len(self.vocab_dict),
+                hidden_layers=is_in_hidden_layers
             )
         else:
             self.is_in_question = is_in_question
 
     # @tf.function(jit_compile=True)
     def compute_loss(self, outputs, tests):
-        location, answer_prob = self._get_answer_prob(outputs, tests)
+        location, answer_prob = self.get_answer_prob(outputs, tests)
         return tf.nn.sparse_softmax_cross_entropy_with_logits(
-                logits=answer_prob,
-                labels=[self.vocab_dict[location[i]] for i in range(len(location))]
+            logits=answer_prob,
+            labels=[self.vocab_dict[location[i]] for i in range(len(location))]
         )
 
     # @tf.function(jit_compile=True)
-    def _get_answer_prob(self, outputs, tests):
+    def get_answer_prob(self, outputs, tests):
         num_wires = outputs.shape[1] // self.wire_dimension
         output_wires = tf.split(outputs, num_wires, axis=1)
         tests = np.array(tests).T
@@ -55,12 +51,13 @@ class AddLogitsOneNetworkTrainer(OneNetworkTrainer):
         person = [(int(person), i) for i, person in enumerate(person)]
         person_vectors = tf.gather_nd(output_wires, person)
 
-        logit_sum = [tf.zeros(len(self.vocab_dict)) for _ in range(len(location))]
+        logit_sum = [tf.zeros(len(self.vocab_dict))
+                        for _ in range(len(outputs))]
         for i in range(num_wires):
             location_vectors = output_wires[i]
 
             answer = self.is_in_question(
-                    tf.concat([person_vectors, location_vectors], axis=1)
+                tf.concat([person_vectors, location_vectors], axis=1)
             )
 
             logit = tf.convert_to_tensor(answer)

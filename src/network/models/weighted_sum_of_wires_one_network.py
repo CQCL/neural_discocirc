@@ -1,29 +1,21 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow import keras
 
-from network.big_network_models.one_network_trainer_base import OneNetworkTrainer
+from network.models.model_base_class import ModelBaseClass
 from network.utils.utils import create_feedforward_network
 
 
-class AddScaledLogitsOneNetworkTrainer(keras.layers.Layer):
+class WeightedSumOfWiresModel(ModelBaseClass):
     def __init__(self,
-                 softmax_relevancies=True,
-                 softmax_logits=True,
+                 wire_dimension,
                  vocab_dict=None,
                  lexicon=None,
-                 hidden_layers=[10, 10],
                  relevance_question=None,
-                 wire_dimension=10,
                  is_in_question=None,
-                 is_in_hidden_layers=[10, 10],
-                 relevance_hidden_layers=[10, 10],
-                 **kwargs
+                 is_in_hidden_layers=None,
+                 relevance_hidden_layers=None,
             ):
-        super().__init__(lexicon=lexicon, wire_dimension=wire_dimension, hidden_layers=hidden_layers, **kwargs)
-
-        self.softmax_relevancies = softmax_relevancies
-        self.softmax_logits = softmax_logits
+        super().__init__(wire_dimension=wire_dimension)
 
         if vocab_dict is None:
             self.vocab_dict = {}
@@ -34,7 +26,7 @@ class AddScaledLogitsOneNetworkTrainer(keras.layers.Layer):
 
         if is_in_question is None:
             self.is_in_question = create_feedforward_network(
-                input_dim = 2 * wire_dimension,
+                input_dim = wire_dimension,
                 output_dim = len(self.vocab_dict),
                 hidden_layers = is_in_hidden_layers
             )
@@ -52,56 +44,33 @@ class AddScaledLogitsOneNetworkTrainer(keras.layers.Layer):
 
     # @tf.function(jit_compile=True)
     def compute_loss(self, outputs, tests):
-        location, answer_prob = self._get_answer_prob(outputs, tests)
+        location, answer_prob = self.get_answer_prob(outputs, tests)
         return tf.nn.sparse_softmax_cross_entropy_with_logits(
                 logits=answer_prob,
                 labels=[self.vocab_dict[location[i]] for i in range(len(location))]
         )
 
     # @tf.function(jit_compile=True)
-    def _get_answer_prob(self, outputs, tests):
+    def get_answer_prob(self, outputs, tests):
         num_wires = outputs.shape[1] // self.wire_dimension
         output_wires = tf.split(outputs, num_wires, axis=1)
         tests = np.array(tests).T
-        person, location = tests[0], tests[1]
-        person = [(int(person), i) for i, person in enumerate(person)]
-        person_vectors = tf.gather_nd(output_wires, person)
+        persons, locations = tests[0], tests[1]
+        persons = [(int(person), i) for i, person in enumerate(persons)]
+        person_vectors = tf.gather_nd(output_wires, persons)
 
-        relevances = []
+        wire_sum = [tf.zeros(self.wire_dimension) for _ in
+                     range(len(locations))]
         for i in range(num_wires):
             location_vectors = output_wires[i]
-            relevances.append(tf.squeeze(
-                self.relevance_question(
-                    tf.concat([person_vectors, location_vectors], axis=1)
-                )
-            ))
-
-        relevances = tf.convert_to_tensor(relevances)
-        if self.softmax_relevancies:
-            relevances = tf.nn.softmax(relevances)
-
-        logit_sum = [tf.zeros(len(self.vocab_dict)) for _ in range(len(location))]
-        for i in range(num_wires):
-            location_vectors = output_wires[i]
-
-            answer = self.is_in_question(
+            relevances = self.relevance_question(
                     tf.concat([person_vectors, location_vectors], axis=1)
             )
+            for j in range(len(locations)):
+                wire_sum[j] = wire_sum[j] + location_vectors[j] * relevances[j]
 
-            logit = tf.convert_to_tensor(answer)
-            if self.softmax_logits:
-                logit = tf.nn.softmax(logit)
-
-            for j in range(len(logit)): # loop over each value in the batch (this should probably be done differently)
-                relevance = relevances[i]
-                if len(relevances.shape) > 1:
-                    relevance = relevances[i][j] # the reason why I loop over the batches. Not sure who to do this otherwise
-                logit_sum[j] = tf.math.add(
-                        tf.math.multiply(logit[j], relevance),
-                        logit_sum[j]
-                )
-
-        return location, logit_sum
+        logit = self.is_in_question(tf.transpose(tf.transpose(wire_sum)))
+        return locations, logit
 
     def get_config(self):
         config = super().get_config()

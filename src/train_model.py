@@ -1,9 +1,14 @@
 import os
 import shutil
 
-from network.big_network_models.is_in_one_network import IsInOneNetworkTrainer
-from network.big_network_models.one_network_trainer_base import \
-    OneNetworkTrainer
+from network.models.add_logits_model import AddLogitsModel
+from network.models.add_scaled_logits_model import AddScaledLogitsModel
+from network.models.is_in_model import IsInModel
+from network.models.weighted_sum_of_wires_one_network import \
+    WeightedSumOfWiresModel
+from network.trainers.individual_networks_trainer import \
+    IndividualNetworksTrainer
+from network.trainers.one_network_trainer import OneNetworkTrainer
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import pickle
@@ -27,21 +32,22 @@ config = {
     "epochs": 100,
     "learning_rate": 0.001,
     "log_wandb": False,
-    "model": IsInOneNetworkTrainer,
-    "trainer": OneNetworkTrainer, # or IndividualNetworksTrainer,
+    "model": WeightedSumOfWiresModel,
+    "trainer": OneNetworkTrainer,
+    # "trainer": IndividualNetworksTrainer,
     "vocab": "en_qa1.p",
 }
 model_config = {
-    "hidden_layers": [10, 10],
-    # "is_in_hidden_layers": [10, 10],
     "wire_dimension": 10,
+    "hidden_layers": [10, 10],
+    "is_in_hidden_layers": [10, 10],
     # "softmax_relevancies": False,
     # "softmax_logits": False,
-    # "relevance_hidden_layers": [10, 10],
-    "expansion_hidden_layers": [20, 50],
-    "contraction_hidden_layers": [50, 20],
-    "latent_dimension": 100,
-    "textspace_dimension": 20,
+    "relevance_hidden_layers": [10, 10],
+    # "expansion_hidden_layers": [20, 50],
+    # "contraction_hidden_layers": [50, 20],
+    # "latent_dimension": 100,
+    # "textspace_dimension": 20,
 }
 config.update(model_config)
 

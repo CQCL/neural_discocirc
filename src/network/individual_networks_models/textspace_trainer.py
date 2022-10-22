@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
-from network.individual_networks_models.individual_networks_trainer_base_class import \
+from network.trainers.individual_networks_trainer import \
     IndividualNetworksTrainer
 from network.utils.circuit_to_textspace import TextSpace
 from network.utils.utils import get_classification_vocab
@@ -48,7 +48,7 @@ class TextspaceIndividualNetworksTrainer(IndividualNetworksTrainer):
         if self.qna_classifier_model is None:    
             self.qna_classifier_model = self.qna_classifier()
 
-    def compile_dataset(self, dataset, validation = False):
+    def compile_dataset(self, dataset):
         """
         applies the nn_functor to the list of context and question circuit diagrams,
         and saves these
@@ -60,7 +60,7 @@ class TextspaceIndividualNetworksTrainer(IndividualNetworksTrainer):
             count += 1
             context_circuit_model = self.nn_functor(context_circuit)
             question_circuit_model = self.nn_functor(test[0])
-            model_dataset.append([context_circuit_model, (question_circuit_model, test[1])])
+            model_dataset.append([context_circuit_model.model, (question_circuit_model.model, test[1])])
 
         return model_dataset
 

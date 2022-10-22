@@ -8,21 +8,20 @@ from network.utils.utils import get_fast_nn_functor, initialize_boxes
 
 class IndividualNetworksTrainer(keras.Model):
     def __init__(self,
-                 lexicon=None,
-                 wire_dimension=10,
-                 hidden_layers=[10, 10],
-                 model_class=None,
+                 lexicon,
+                 wire_dimension,
+                 hidden_layers,
+                 model_class,
                  **kwargs):
         super().__init__()
-        if lexicon is not None:
-            self.nn_boxes = initialize_boxes(lexicon, wire_dimension, hidden_layers)
-            self.nn_functor = get_fast_nn_functor(self.nn_boxes, wire_dimension)
+        self.nn_boxes = initialize_boxes(lexicon, wire_dimension,
+                                         hidden_layers)
+        self.nn_functor = get_fast_nn_functor(self.nn_boxes, wire_dimension)
         self.hidden_layers = hidden_layers
         self.wire_dimension = wire_dimension
-        self.dataset = None
         self.lexicon = lexicon
-        if model_class is not None:
-            self.model_class = model_class(wire_dimension=wire_dimension, **kwargs)
+        self.model_class = model_class(wire_dimension=wire_dimension,
+                                       lexicon=lexicon, **kwargs)
         self.loss_tracker = keras.metrics.Mean(name="loss")
 
     def get_config(self):
@@ -39,12 +38,13 @@ class IndividualNetworksTrainer(keras.Model):
     def load_model(cls, path, model_class):
         model = keras.models.load_model(
             path,
-            custom_objects={cls.__name__: cls, model_class.__name__: model_class},
+            custom_objects={cls.__name__: cls,
+                            model_class.__name__: model_class},
         )
-        model.nn_functor = get_fast_nn_functor(model.nn_boxes, model.wire_dimension)
+        model.nn_functor = get_fast_nn_functor(model.nn_boxes,
+                                               model.wire_dimension)
         model.run_eagerly = True
         return model
-
 
     def compile_dataset(self, dataset):
         """
@@ -107,7 +107,8 @@ class IndividualNetworksTrainer(keras.Model):
 
             data = dataset[i]
             outputs = self.call(data[0])
-            _, answer_prob = self.model_class._get_answer_prob(outputs, [dataset[i][1]])
+            _, answer_prob = self.model_class.get_answer_prob(outputs,
+                                                              [dataset[i][1]])
 
             location_predicted.append(
                 self.model_class.get_prediction_result(answer_prob)
@@ -119,7 +120,8 @@ class IndividualNetworksTrainer(keras.Model):
         accuracy = accuracy_score(location_true, location_predicted)
         return accuracy
 
-    def fit(self, train_dataset, validation_dataset, epochs, batch_size=32, **kwargs):
+    def fit(self, train_dataset, validation_dataset, epochs, batch_size=32,
+            **kwargs):
         print('compiling train dataset (size: {})...'.
               format(len(train_dataset)))
 
@@ -130,10 +132,10 @@ class IndividualNetworksTrainer(keras.Model):
               .format(len(validation_dataset)))
         self.validation_dataset = self.compile_dataset(validation_dataset)
 
-
         input_index_dataset = tf.data.Dataset.range(self.dataset_size)
         input_index_dataset = input_index_dataset.shuffle(self.dataset_size)
         input_index_dataset = input_index_dataset.batch(batch_size)
 
         return super(IndividualNetworksTrainer, self).fit(input_index_dataset,
-                                                              epochs=epochs, **kwargs)
+                                                          epochs=epochs,
+                                                          **kwargs)
