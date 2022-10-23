@@ -99,9 +99,10 @@ class OneNetworkTrainer(keras.Model):
             **kwargs):
         self.diagrams = [data[self.model_class.context_circuit_key] for data in
                          dataset]
-        self.tests = [(data[self.model_class.question_key],
-                       data[self.model_class.answer_key]) for data in dataset]
-        self.compile_diagrams(self.diagrams)
+        self.question_answer_pairs = [(data[self.model_class.question_key],
+                                       data[self.model_class.answer_key]) for data in dataset]
+        self.diagram_parameters = OneNetworkTrainer.compile_diagrams(self.diagrams, self.states, self.wire_dimension, self.hidden_layers, self.lexicon_weights, self.lexicon_biases)
+
         self.dataset = dataset
         self.validation_dataset = validation_dataset
 
@@ -111,35 +112,70 @@ class OneNetworkTrainer(keras.Model):
         input_index_dataset = input_index_dataset.prefetch(tf.data.AUTOTUNE)
         return super().fit(input_index_dataset, epochs=epochs, **kwargs)
 
-    def compile_diagrams(self, diagrams):
-        self.diagram_parameters = self.get_parameters_from_diagrams(diagrams)
-        self.pad_parameters(self.diagram_parameters)
-        self.get_block_diag_paddings(self.diagram_parameters)
+    def compile_dataset(self, dataset):
+        model_dataset = []
+        count = 0
+        for data in dataset:
+            print(count + 1, "/", len(dataset), end="\r")
+            count += 1
+
+            compiled_data = {}
+            for key, result in [(self.model_class.context_circuit_key, "context"),
+                                (self.model_class.question_key, "question"),
+                                (self.model_class.answer_key, "answer")]:
+                if key in self.model_class.data_requiring_compilation:
+                    compiled_data[result] = OneNetworkTrainer.compile_diagrams(data[key], self.states, self.wire_dimension, self.hidden_layers, self.lexicon_weights, self.lexicon_biases)
+                else:
+                    compiled_data[result] = data[key]
+
+            model_dataset.append([
+                compiled_data["context"],
+                (compiled_data["question"], compiled_data["answer"])
+            ])
+
+        return model_dataset
+
+
+    @staticmethod
+    def compile_diagrams(diagrams, states, wire_dimension, hidden_layers, lexicon_weights, lexicon_biases):
+        diagram_parameters = OneNetworkTrainer.get_parameters_from_diagrams(diagrams, states, wire_dimension, hidden_layers, lexicon_weights, lexicon_biases)
+        diagram_parameters = OneNetworkTrainer.__pad_parameters(diagram_parameters)
+        diagram_parameters = OneNetworkTrainer.__get_block_diag_paddings(
+            diagram_parameters)
+
+        return diagram_parameters
 
     # ----------------------------------------------------------------
     # PARAMETERS FROM DIAGRAMS
     # ----------------------------------------------------------------
-    def get_parameters_from_diagrams(self, diagrams):
+    @staticmethod
+    def get_parameters_from_diagrams(diagrams, states, wire_dimension, hidden_layers, lexicon_weights, lexicon_biases):
         diagram_parameters = {}
         for i, d in enumerate(diagrams):
             print("\rGetting parameters for diagram: {} of {}".format(i + 1,
                                                                       len(diagrams)),
                   end="")
-            diagram_parameters[repr(d)] = self._get_parameters_from_diagram(d)
+            diagram_parameters[repr(d)] = OneNetworkTrainer._get_parameters_from_diagram(d, states, wire_dimension, hidden_layers, lexicon_weights, lexicon_biases)
         print("\n")
 
         return diagram_parameters
 
-    def _get_parameters_from_diagram(self, diagram):
+    @staticmethod
+    def _get_parameters_from_diagram(diagram, states, wire_dimension, hidden_layers, lexicon_weights, lexicon_biases):
         model_weights = []
         model_biases = []
         model_activation_masks = []
-        model_input = [self.states[get_box_name(box)] for box in
+        model_input = [states[get_box_name(box)] for box in
                        diagram.foliation()[0].boxes]
 
         for fol in diagram.foliation()[1:]:
-            layer_weights, layer_biases, layer_activation_masks = self.get_parameters_from_foliation(
-                fol)
+            layer_weights, layer_biases, layer_activation_masks = OneNetworkTrainer.__get_parameters_from_foliation(
+                wire_dimension,
+                fol,
+                hidden_layers,
+                lexicon_weights,
+                lexicon_biases
+            )
             model_weights += layer_weights
             model_biases += layer_biases
             model_activation_masks += layer_activation_masks
@@ -150,71 +186,64 @@ class OneNetworkTrainer(keras.Model):
                 'masks': model_activation_masks,
                 }
 
-    def get_parameters_from_foliation(self, foliation):
+    @staticmethod
+    def __get_parameters_from_foliation(wire_dimension, foliation, hidden_layers, lexicon_weights, lexicon_biases):
         weights = [[]]
         biases = [[]]
         activation_masks = [[]]
         if any(type(e) == Box for e in foliation.boxes):
-            weights = [[] for _ in range(1 + len(self.hidden_layers))]
-            biases = [[] for _ in range(1 + len(self.hidden_layers))]
-            activation_masks = [[] for _ in range(1 + len(self.hidden_layers))]
+            weights = [[] for _ in range(1 + len(hidden_layers))]
+            biases = [[] for _ in range(1 + len(hidden_layers))]
+            activation_masks = [[] for _ in range(1 + len(hidden_layers))]
 
         wires_traversed = 0
         for left, box, right in foliation.layers:
             if len(left) > wires_traversed:  # new identity wires are introduced
-                weights, biases, activation_masks = self.add_id_params_to_layer(
-                    len(left) - wires_traversed, weights, biases,
-                    activation_masks)
+                weights, biases, activation_masks = OneNetworkTrainer.__add_id_params_to_layer(
+                    wire_dimension,
+                    len(left) - wires_traversed,
+                    weights,
+                    biases,
+                    activation_masks
+                )
             for i in range(len(weights)):
-                weights[i].append(self.lexicon_weights[get_box_name(box)][i])
-                biases[i].append(self.lexicon_biases[get_box_name(box)][i])
+                weights[i].append(lexicon_weights[get_box_name(box)][i])
+                biases[i].append(lexicon_biases[get_box_name(box)][i])
                 activation_masks[i].append(tf.ones(
-                    (self.lexicon_weights[get_box_name(box)][i].shape[1],)))
+                    (lexicon_weights[get_box_name(box)][i].shape[1],)))
             wires_traversed = len(left) + len(box.cod)
         if right:  # identity wires on the right that were not traversered
-            weights, biases, activation_masks = self.add_id_params_to_layer(
-                len(right), weights, biases, activation_masks)
+            weights, biases, activation_masks = OneNetworkTrainer.__add_id_params_to_layer(
+                wire_dimension, len(right), weights, biases, activation_masks)
         return weights, biases, activation_masks
 
-    def add_id_params_to_layer(self, num_id_wires, weights, biases,
-                               activation_masks):
+    @staticmethod
+    def __add_id_params_to_layer(wire_dimension, num_id_wires, weights, biases,
+                                 activation_masks):
         for i in range(len(weights)):
-            weights[i] += ([tf.eye(self.wire_dimension)] * num_id_wires)
-            biases[i] += ([tf.zeros((self.wire_dimension,))] * num_id_wires)
+            weights[i] += ([tf.eye(wire_dimension)] * num_id_wires)
+            biases[i] += ([tf.zeros((wire_dimension,))] * num_id_wires)
             activation_masks[i] += (
-                    [tf.zeros((self.wire_dimension,))] * num_id_wires)
+                    [tf.zeros((wire_dimension,))] * num_id_wires)
         return weights, biases, activation_masks
 
     # ----------------------------------------------------------------
     # PADDING
     # ----------------------------------------------------------------
-    def pad_parameters(self, diagram_parameters):
-        self.pad_depth_of_parameters(diagram_parameters)
-        max_input_length = self.get_max_input_length(diagram_parameters)
-        max_layer_widths = self.get_max_layer_widths(diagram_parameters)
-        self.pad_width_of_parameters(diagram_parameters, max_layer_widths,
-                                     max_input_length)
+    @staticmethod
+    def __pad_parameters(diagram_parameters):
+        diagram_parameters = OneNetworkTrainer.__pad_depth_of_parameters(diagram_parameters)
+        max_input_length = OneNetworkTrainer.__get_max_input_length(diagram_parameters)
+        max_layer_widths = OneNetworkTrainer.__get_max_layer_widths(diagram_parameters)
+        diagram_parameters = OneNetworkTrainer.__pad_width_of_parameters(
+                                                    diagram_parameters,
+                                                    max_layer_widths,
+                                                    max_input_length)
 
-    def get_max_input_length(self, diagram_parameters):
-        inputs = [d["input"] for d in diagram_parameters.values()]
-        input_length = [sum(x.shape[0] for x in i) for i in inputs]
-        return max(input_length)
+        return diagram_parameters
 
-    def get_max_layer_widths(self, diagram_parameters):
-        max_layer_widths = []
-        for d in diagram_parameters.values():
-            for i in range(len(d['weights'])):
-                if len(max_layer_widths) <= i:
-                    max_layer_widths.append((0, 0))
-                max_layer_widths[i] = (
-                    max(max_layer_widths[i][0],
-                        sum(w.shape[0] for w in d['weights'][i])),
-                    max(max_layer_widths[i][1],
-                        sum(w.shape[1] for w in d['weights'][i]))
-                )
-        return max_layer_widths
-
-    def pad_depth_of_parameters(self, diagram_parameters):
+    @staticmethod
+    def __pad_depth_of_parameters(diagram_parameters):
         max_depth = max(
             [len(d['weights']) for d in diagram_parameters.values()])
         for d in diagram_parameters.values():
@@ -228,8 +257,32 @@ class OneNetworkTrainer(keras.Model):
                 d["masks"].extend(
                     [[tf.zeros((last_layer_width,))] for _ in range(diff)])
 
-    def pad_width_of_parameters(self, diagram_parameters, max_layer_widths,
-                                max_input_length):
+        return diagram_parameters
+
+    @staticmethod
+    def __get_max_input_length(diagram_parameters):
+        inputs = [d["input"] for d in diagram_parameters.values()]
+        input_length = [sum(x.shape[0] for x in i) for i in inputs]
+        return max(input_length)
+
+    @staticmethod
+    def __get_max_layer_widths(diagram_parameters):
+        max_layer_widths = []
+        for d in diagram_parameters.values():
+            for i in range(len(d['weights'])):
+                if len(max_layer_widths) <= i:
+                    max_layer_widths.append((0, 0))
+                max_layer_widths[i] = (
+                    max(max_layer_widths[i][0],
+                        sum(w.shape[0] for w in d['weights'][i])),
+                    max(max_layer_widths[i][1],
+                        sum(w.shape[1] for w in d['weights'][i]))
+                )
+        return max_layer_widths
+
+    @staticmethod
+    def __pad_width_of_parameters(diagram_parameters, max_layer_widths,
+                                  max_input_length):
         for d in diagram_parameters.values():
             input_size = sum(x.shape[0] for x in d['input'])
             if input_size < max_input_length:
@@ -244,7 +297,10 @@ class OneNetworkTrainer(keras.Model):
                 d['biases'][i].append(tf.zeros((diff_1,)))
                 d['masks'][i].append(tf.zeros((diff_1,)))
 
-    def get_block_diag_paddings(self, diagram_parameters):
+        return diagram_parameters
+
+    @staticmethod
+    def __get_block_diag_paddings(diagram_parameters):
         for d in diagram_parameters.values():
             d['weights_top_pads'] = []
             d['weights_bottom_pads'] = []
@@ -261,6 +317,8 @@ class OneNetworkTrainer(keras.Model):
                 d['weights_top_pads'].append(weights_top_pads)
                 d['weights_bottom_pads'].append(weights_bottom_pads)
 
+        return diagram_parameters
+
     # ----------------------------------------------------------------
     # TRAIN STEP
     # ----------------------------------------------------------------
@@ -269,11 +327,11 @@ class OneNetworkTrainer(keras.Model):
             self.diagram_parameters[repr(self.diagrams[int(i)])]
             for i in batch_index
         ]
-        tests = [self.tests[int(i)] for i in batch_index]
+        question_answer_pairs = [self.question_answer_pairs[int(i)] for i in batch_index]
         with tf.GradientTape() as tape:
             batched_params = self.batch_diagrams(diagrams_params)
             outputs = self.call(batched_params)
-            loss = self.model_class.compute_loss(outputs, tests)
+            loss = self.model_class.compute_loss(outputs, question_answer_pairs)
             grads = tape.gradient(loss, self.trainable_weights)
         self.optimizer.apply_gradients(
             (grad, weights)
@@ -342,9 +400,9 @@ class OneNetworkTrainer(keras.Model):
         diagrams = [data[self.model_class.context_circuit_key] for data in dataset]
         # self.diagrams = diagrams
 
-        diagram_parameters = self.get_parameters_from_diagrams(diagrams)
-        self.pad_parameters(diagram_parameters)
-        self.get_block_diag_paddings(diagram_parameters)
+        diagram_parameters = self.get_parameters_from_diagrams(diagrams, self.states, self.wire_dimension, self.hidden_layers, self.lexicon_weights, self.lexicon_biases)
+        self.__pad_parameters(diagram_parameters)
+        self.__get_block_diag_paddings(diagram_parameters)
 
         location_predicted = []
         location_true = []
