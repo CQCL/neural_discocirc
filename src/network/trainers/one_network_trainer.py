@@ -4,6 +4,8 @@ from discopy.monoidal import Swap
 import tensorflow as tf
 from sklearn.metrics import accuracy_score
 from tensorflow import keras
+
+from network.trainers.trainer_base_class import TrainerBaseClass
 from network.utils.utils import get_box_name, get_params_dict_from_tf_variables
 
 
@@ -14,7 +16,7 @@ class MyDenseLayer(keras.layers.Layer):
         return tf.where(tf.cast(mask, dtype=tf.bool), tf.nn.relu(out), out)
 
 
-class OneNetworkTrainer(keras.Model):
+class OneNetworkTrainer(TrainerBaseClass):
     def __init__(self,
                  wire_dimension,
                  lexicon,
@@ -22,15 +24,9 @@ class OneNetworkTrainer(keras.Model):
                  model_class,
                  **kwargs
                  ):
-        super().__init__()
-        self.wire_dimension = wire_dimension
-        self.hidden_layers = hidden_layers
+        super().__init__(wire_dimension=wire_dimension, lexicon=lexicon, hidden_layers=hidden_layers, model_class=model_class, **kwargs)
         self.dense_layer = MyDenseLayer()
-        self.lexicon = lexicon
-        self.model_class = model_class(wire_dimension=wire_dimension,
-                                       lexicon=lexicon, **kwargs)
         self.initialize_lexicon_weights(lexicon)
-        self.loss_tracker = keras.metrics.Mean(name="loss")
 
     # ----------------------------------------------------------------
     # INITIALIZE WEIGHTS
@@ -97,40 +93,32 @@ class OneNetworkTrainer(keras.Model):
     # ----------------------------------------------------------------
     def fit(self, dataset, validation_dataset, epochs=100, batch_size=32,
             **kwargs):
-        self.diagrams = [data[self.model_class.context_circuit_key] for data in
-                         dataset]
-        self.question_answer_pairs = [(data[self.model_class.question_key],
-                                       data[self.model_class.answer_key]) for data in dataset]
-        self.diagram_parameters = OneNetworkTrainer.compile_diagrams(self.diagrams, self.states, self.wire_dimension, self.hidden_layers, self.lexicon_weights, self.lexicon_biases)
-
-        self.dataset = dataset
-        self.validation_dataset = validation_dataset
+        self.dataset = self.compile_dataset(dataset)
+        self.validation_dataset = self.compile_dataset(validation_dataset)
 
         input_index_dataset = tf.data.Dataset.range(len(dataset))
         input_index_dataset = input_index_dataset.shuffle(len(dataset))
         input_index_dataset = input_index_dataset.batch(batch_size)
+
+        # TODO: what is this?
         input_index_dataset = input_index_dataset.prefetch(tf.data.AUTOTUNE)
         return super().fit(input_index_dataset, epochs=epochs, **kwargs)
 
     def compile_dataset(self, dataset):
         model_dataset = []
         count = 0
+
+        diagrams = [data[self.model_class.context_key] for data in
+                    dataset]
+        diagram_parameters = OneNetworkTrainer.compile_diagrams(diagrams, self.states, self.wire_dimension, self.hidden_layers, self.lexicon_weights, self.lexicon_biases)
+
         for data in dataset:
             print(count + 1, "/", len(dataset), end="\r")
             count += 1
 
-            compiled_data = {}
-            for key, result in [(self.model_class.context_circuit_key, "context"),
-                                (self.model_class.question_key, "question"),
-                                (self.model_class.answer_key, "answer")]:
-                if key in self.model_class.data_requiring_compilation:
-                    compiled_data[result] = OneNetworkTrainer.compile_diagrams(data[key], self.states, self.wire_dimension, self.hidden_layers, self.lexicon_weights, self.lexicon_biases)
-                else:
-                    compiled_data[result] = data[key]
-
             model_dataset.append([
-                compiled_data["context"],
-                (compiled_data["question"], compiled_data["answer"])
+                diagram_parameters[repr(data[self.model_class.context_key])],
+                (data[self.model_class.question_key], data[self.model_class.answer_key])
             ])
 
         return model_dataset
@@ -323,20 +311,18 @@ class OneNetworkTrainer(keras.Model):
     # TRAIN STEP
     # ----------------------------------------------------------------
     def train_step(self, batch_index):
-        diagrams_params = [
-            self.diagram_parameters[repr(self.diagrams[int(i)])]
-            for i in batch_index
-        ]
-        question_answer_pairs = [self.question_answer_pairs[int(i)] for i in batch_index]
+        diagrams_params = [self.dataset[i][0] for i in batch_index]
+        question_answer_pairs = [self.dataset[i][1] for i in batch_index]
         with tf.GradientTape() as tape:
-            batched_params = self.batch_diagrams(diagrams_params)
-            outputs = self.call(batched_params)
+            outputs = self.call(diagrams_params)
             loss = self.model_class.compute_loss(outputs, question_answer_pairs)
             grads = tape.gradient(loss, self.trainable_weights)
+
         self.optimizer.apply_gradients(
             (grad, weights)
             for (grad, weights) in zip(grads, self.trainable_weights)
             if grad is not None)
+
         self.loss_tracker.update_state(loss)
         return {
             "loss": self.loss_tracker.result(),
@@ -345,7 +331,8 @@ class OneNetworkTrainer(keras.Model):
     # ----------------------------------------------------------------
     # BATCHING
     # ----------------------------------------------------------------
-    def batch_diagrams(self, diagrams):
+    @staticmethod
+    def batch_diagrams(diagrams):
         inputs = tf.stack(
             [tf.concat(d['input'], axis=0) for d in diagrams],
             axis=0
@@ -355,7 +342,7 @@ class OneNetworkTrainer(keras.Model):
         masks = []
         for i in range(len(diagrams[0]['weights'])):
             weights.append(tf.stack(
-                [self._make_block_diag(
+                [OneNetworkTrainer._make_block_diag(
                     d['weights'][i], d['weights_top_pads'][i],
                     d['weights_bottom_pads'][i]
                 ) for d in diagrams],
@@ -384,9 +371,11 @@ class OneNetworkTrainer(keras.Model):
     # ----------------------------------------------------------------
     # CALL
     # ----------------------------------------------------------------
-    @tf.function(jit_compile=True)
+    # TODO: not compilable anymore. It was before moving batch_diagrams in here
+    # @tf.function(jit_compile=True)
     def call(self, params):
-        input, weight, bias, mask = params
+        batched_params = self.batch_diagrams(params)
+        input, weight, bias, mask = batched_params
         output = input
         for weight, bias, mask in zip(weight, bias, mask):
             output = self.dense_layer(output, weight, bias, mask)
@@ -395,30 +384,24 @@ class OneNetworkTrainer(keras.Model):
     # ----------------------------------------------------------------
     # Accuracy
     # ----------------------------------------------------------------
-    # TODO: possibly make faster by not having to compile dataset every time
     def get_accuracy(self, dataset):
-        diagrams = [data[self.model_class.context_circuit_key] for data in dataset]
-        # self.diagrams = diagrams
-
-        diagram_parameters = self.get_parameters_from_diagrams(diagrams, self.states, self.wire_dimension, self.hidden_layers, self.lexicon_weights, self.lexicon_biases)
-        self.__pad_parameters(diagram_parameters)
-        self.__get_block_diag_paddings(diagram_parameters)
-
         location_predicted = []
         location_true = []
+
         for i in range(len(dataset)):
             print('predicting {} / {}'.format(i, len(dataset)), end='\r')
-            diagrams_params = [diagram_parameters[repr(dataset[i][self.model_class.context_circuit_key])]]
-            batched_params = self.batch_diagrams(diagrams_params)
-            outputs = self.call(batched_params)
+
+            data = dataset[i]
+            # TODO: this is the only line that is different to parent
+            outputs = self.call([data[0]])
             answer_prob = self.model_class.get_answer_prob(outputs,
-                                                              [(dataset[i][self.model_class.question_key])])
+                                                              [data[1][0]])
 
             location_predicted.append(
                 self.model_class.get_prediction_result(answer_prob)
             )
             location_true.append(
-                self.model_class.get_expected_result(dataset[i][self.model_class.answer_key])
+                self.model_class.get_expected_result(data[1][1])
             )
 
         accuracy = accuracy_score(location_true, location_predicted)
@@ -427,24 +410,8 @@ class OneNetworkTrainer(keras.Model):
     # ----------------------------------------------------------------
     # SAVING AND LOADING
     # ----------------------------------------------------------------
-    def get_config(self):
-        return {
-            "wire_dimension": self.wire_dimension,
-            "hidden_layers": self.hidden_layers,
-        }
-
     @classmethod
-    def from_config(cls, config):
-        return cls(**config)
-
-    @classmethod
-    def load_model(cls, path, model_class):
-        model = keras.models.load_model(
-            path,
-            custom_objects={cls.__name__: cls,
-                            model_class.__name__: model_class},
-        )
-        model.run_eagerly = True
+    def load_model_trainer(model):
         model.get_lexicon_params_from_saved_variables()
         return model
 

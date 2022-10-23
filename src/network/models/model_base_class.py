@@ -8,10 +8,10 @@ from tensorflow import keras
 class ModelBaseClass(keras.layers.Layer, ABC):
     data_requiring_compilation = {"context_circ", "question_circ"}
 
-    def __init__(self, wire_dimension, context_circuit_key, question_key, answer_key):
+    def __init__(self, wire_dimension, context_key, question_key, answer_key):
         super().__init__()
         self.wire_dimension = wire_dimension
-        self.context_circuit_key = context_circuit_key
+        self.context_key = context_key
         self.question_key = question_key
         self.answer_key = answer_key
 

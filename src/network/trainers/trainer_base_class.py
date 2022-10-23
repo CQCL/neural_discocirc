@@ -1,8 +1,9 @@
 from abc import abstractmethod
 
+from sklearn.metrics import accuracy_score
 from tensorflow import keras
 
-class OneNetworkTrainer(keras.Model):
+class TrainerBaseClass(keras.Model):
     def __init__(self,
                  wire_dimension,
                  lexicon,
@@ -29,8 +30,7 @@ class OneNetworkTrainer(keras.Model):
         return cls(**config)
 
     @abstractmethod
-    @classmethod
-    def load_model_trainer(self):
+    def load_model_trainer(model):
         pass
 
     @classmethod
@@ -41,7 +41,27 @@ class OneNetworkTrainer(keras.Model):
                             model_class.__name__: model_class},
         )
         model.run_eagerly = True
-
-        cls.load_model_trainer()
-
+        model = cls.load_model_trainer(model)
         return model
+
+    def get_accuracy(self, dataset):
+        location_predicted = []
+        location_true = []
+
+        for i in range(len(dataset)):
+            print('predicting {} / {}'.format(i, len(dataset)), end='\r')
+
+            data = dataset[i]
+            outputs = self.call(data[0])
+            answer_prob = self.model_class.get_answer_prob(outputs,
+                                                           [data[1][0]])
+
+            location_predicted.append(
+                self.model_class.get_prediction_result(answer_prob)
+            )
+            location_true.append(
+                self.model_class.get_expected_result(data[1][1])
+            )
+
+        accuracy = accuracy_score(location_true, location_predicted)
+        return accuracy

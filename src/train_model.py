@@ -33,23 +33,23 @@ config = {
     "epochs": 100,
     "learning_rate": 0.001,
     "log_wandb": False,
-    "model": TextspaceModel,
-    "trainer": OneNetworkTrainer,
-    # "trainer": IndividualNetworksTrainer,
+    "model": IsInModel,
+    # "trainer": OneNetworkTrainer,
+    "trainer": IndividualNetworksTrainer,
     "lexicon": "en_qa1.p",
 }
 model_config = {
     "wire_dimension": 10,
     "hidden_layers": [10, 10],
-    # "is_in_hidden_layers": [10, 10],
+    "is_in_hidden_layers": [10, 10],
     # "relevance_hidden_layers": [10, 10],
     # "softmax_relevancies": False,
     # "softmax_logits": False,
-    "expansion_hidden_layers": [20, 50],
-    "contraction_hidden_layers": [50, 20],
-    "latent_dimension": 100,
-    "textspace_dimension": 20,
-    "qna_hidden_layers": [10, 10]
+    # "expansion_hidden_layers": [20, 50],
+    # "contraction_hidden_layers": [50, 20],
+    # "latent_dimension": 100,
+    # "textspace_dimension": 20,
+    # "qna_hidden_layers": [10, 10]
 }
 config.update(model_config)
 

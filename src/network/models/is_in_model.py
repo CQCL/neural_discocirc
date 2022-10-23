@@ -13,7 +13,7 @@ class IsInModel(ModelBaseClass):
                  lexicon=None  # not used but always passed by trainer
                  ):
         super().__init__(wire_dimension=wire_dimension,
-                         context_circuit_key="context_circ",
+                         context_key="context_circ",
                          question_key="question_id",
                          answer_key="answer_id"
             )
