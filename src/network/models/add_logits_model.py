@@ -14,7 +14,10 @@ class AddLogitsModel(ModelBaseClass):
                  lexicon=None,
                  is_in_question=None,
             ):
-        super().__init__(wire_dimension=wire_dimension)
+        super().__init__(wire_dimension=wire_dimension,
+                         context_circuit_key="context_circ",
+                         question_key="question_id",
+                         answer_key="answer")
 
         self.softmax_logits = softmax_logits
 
@@ -35,11 +38,9 @@ class AddLogitsModel(ModelBaseClass):
             self.is_in_question = is_in_question
 
     # @tf.function(jit_compile=True)
-    def get_answer_prob(self, outputs, tests):
+    def get_answer_prob(self, outputs, person):
         num_wires = outputs.shape[1] // self.wire_dimension
         output_wires = tf.split(outputs, num_wires, axis=1)
-        tests = np.array(tests).T
-        person, location = tests[0], tests[1]
         person = [(int(person), i) for i, person in enumerate(person)]
         person_vectors = tf.gather_nd(output_wires, person)
 
@@ -58,7 +59,7 @@ class AddLogitsModel(ModelBaseClass):
 
             logit_sum = tf.math.add(logit, logit_sum)
 
-        return location, logit_sum
+        return logit_sum
 
     def get_config(self):
         config = super().get_config()

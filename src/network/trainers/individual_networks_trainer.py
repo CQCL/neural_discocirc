@@ -53,11 +53,23 @@ class IndividualNetworksTrainer(keras.Model):
         """
         model_dataset = []
         count = 0
-        for context_circuit, test in dataset:
+        for data in dataset:
             print(count + 1, "/", len(dataset), end="\r")
             count += 1
-            context_circuit_model = self.nn_functor(context_circuit)
-            model_dataset.append([context_circuit_model, test])
+
+            compiled_data = {}
+            for key, result in [(self.model_class.context_circuit_key, "context"),
+                                (self.model_class.question_key, "question"),
+                                (self.model_class.answer_key, "answer")]:
+                if key in self.model_class.data_requiring_compilation:
+                    compiled_data[result] = self.nn_functor(data[key])
+                else:
+                    compiled_data[result] = data[key]
+
+            model_dataset.append([
+                compiled_data["context"],
+                (compiled_data["question"], compiled_data["answer"])
+            ])
 
         return model_dataset
 
@@ -100,15 +112,16 @@ class IndividualNetworksTrainer(keras.Model):
     def get_accuracy(self, dataset):
         location_predicted = []
         location_true = []
-        if type(dataset[0][0]) == Diagram:
-            dataset = self.compile_dataset(dataset)
+        # if type(dataset[0][0]) == Diagram:
+        # dataset = self.compile_dataset(dataset)
+
         for i in range(len(dataset)):
             print('predicting {} / {}'.format(i, len(dataset)), end='\r')
 
             data = dataset[i]
             outputs = self.call(data[0])
-            _, answer_prob = self.model_class.get_answer_prob(outputs,
-                                                              [dataset[i][1]])
+            answer_prob = self.model_class.get_answer_prob(outputs,
+                                                              [data[1][0]])
 
             location_predicted.append(
                 self.model_class.get_prediction_result(answer_prob)

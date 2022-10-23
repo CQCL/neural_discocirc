@@ -86,19 +86,21 @@ class OneNetworkTrainer(keras.Model):
         b = tf.concat((e, z), axis=1)
         swap_mat = tf.concat((a, b), axis=0)
         self.lexicon_weights[get_box_name(swap)] = (
-                    [swap_mat] + [tf.eye(2 * self.wire_dimension)]
-                    * len(self.hidden_layers))
+                [swap_mat] + [tf.eye(2 * self.wire_dimension)]
+                * len(self.hidden_layers))
         self.lexicon_biases[get_box_name(swap)] = (
-                    [tf.zeros((2 * self.wire_dimension,))]
-                    * (1 + len(self.hidden_layers)))
+                [tf.zeros((2 * self.wire_dimension,))]
+                * (1 + len(self.hidden_layers)))
 
     # ----------------------------------------------------------------
     # FIT
     # ----------------------------------------------------------------
     def fit(self, dataset, validation_dataset, epochs=100, batch_size=32,
             **kwargs):
-        self.diagrams = [data[0] for data in dataset]
-        self.tests = [data[1] for data in dataset]
+        self.diagrams = [data[self.model_class.context_circuit_key] for data in
+                         dataset]
+        self.tests = [(data[self.model_class.question_key],
+                       data[self.model_class.answer_key]) for data in dataset]
         self.compile_diagrams(self.diagrams)
         self.dataset = dataset
         self.validation_dataset = validation_dataset
@@ -180,7 +182,7 @@ class OneNetworkTrainer(keras.Model):
             weights[i] += ([tf.eye(self.wire_dimension)] * num_id_wires)
             biases[i] += ([tf.zeros((self.wire_dimension,))] * num_id_wires)
             activation_masks[i] += (
-                        [tf.zeros((self.wire_dimension,))] * num_id_wires)
+                    [tf.zeros((self.wire_dimension,))] * num_id_wires)
         return weights, biases, activation_masks
 
     # ----------------------------------------------------------------
@@ -253,7 +255,7 @@ class OneNetworkTrainer(keras.Model):
                 for j in range(len(weights)):
                     top = (np.sum(shapes[:j], axis=0)[0], weights[j].shape[1])
                     bottom = (
-                    np.sum(shapes[j + 1:], axis=0)[0], weights[j].shape[1])
+                        np.sum(shapes[j + 1:], axis=0)[0], weights[j].shape[1])
                     weights_top_pads.append(tf.zeros(top))
                     weights_bottom_pads.append(tf.zeros(bottom))
                 d['weights_top_pads'].append(weights_top_pads)
@@ -337,7 +339,7 @@ class OneNetworkTrainer(keras.Model):
     # ----------------------------------------------------------------
     # TODO: possibly make faster by not having to compile dataset every time
     def get_accuracy(self, dataset):
-        diagrams = [data[0] for data in dataset]
+        diagrams = [data[self.model_class.context_circuit_key] for data in dataset]
         # self.diagrams = diagrams
 
         diagram_parameters = self.get_parameters_from_diagrams(diagrams)
@@ -348,17 +350,17 @@ class OneNetworkTrainer(keras.Model):
         location_true = []
         for i in range(len(dataset)):
             print('predicting {} / {}'.format(i, len(dataset)), end='\r')
-            diagrams_params = [diagram_parameters[repr(dataset[i][0])]]
+            diagrams_params = [diagram_parameters[repr(dataset[i][self.model_class.context_circuit_key])]]
             batched_params = self.batch_diagrams(diagrams_params)
             outputs = self.call(batched_params)
-            _, answer_prob = self.model_class.get_answer_prob(outputs,
-                                                              [dataset[i][1]])
+            answer_prob = self.model_class.get_answer_prob(outputs,
+                                                              [(dataset[i][self.model_class.question_key])])
 
             location_predicted.append(
                 self.model_class.get_prediction_result(answer_prob)
             )
             location_true.append(
-                self.model_class.get_expected_result(dataset[i][1][1])
+                self.model_class.get_expected_result(dataset[i][self.model_class.answer_key])
             )
 
         accuracy = accuracy_score(location_true, location_predicted)

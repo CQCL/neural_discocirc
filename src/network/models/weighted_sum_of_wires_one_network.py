@@ -15,7 +15,10 @@ class WeightedSumOfWiresModel(ModelBaseClass):
                  is_in_hidden_layers=None,
                  relevance_hidden_layers=None,
             ):
-        super().__init__(wire_dimension=wire_dimension)
+        super().__init__(wire_dimension=wire_dimension,
+                         context_circuit_key="context_circ",
+                         question_key="question_id",
+                         answer_key="answer")
 
         if vocab_dict is None:
             self.vocab_dict = {}
@@ -43,26 +46,24 @@ class WeightedSumOfWiresModel(ModelBaseClass):
             self.relevance_question = relevance_question
 
     # @tf.function(jit_compile=True)
-    def get_answer_prob(self, outputs, tests):
+    def get_answer_prob(self, outputs, persons):
         num_wires = outputs.shape[1] // self.wire_dimension
         output_wires = tf.split(outputs, num_wires, axis=1)
-        tests = np.array(tests).T
-        persons, locations = tests[0], tests[1]
         persons = [(int(person), i) for i, person in enumerate(persons)]
         person_vectors = tf.gather_nd(output_wires, persons)
 
         wire_sum = [tf.zeros(self.wire_dimension) for _ in
-                     range(len(locations))]
+                     range(len(persons))]
         for i in range(num_wires):
             location_vectors = output_wires[i]
             relevances = self.relevance_question(
                     tf.concat([person_vectors, location_vectors], axis=1)
             )
-            for j in range(len(locations)):
+            for j in range(len(persons)):
                 wire_sum[j] = wire_sum[j] + location_vectors[j] * relevances[j]
 
         logit = self.is_in_question(tf.transpose(tf.transpose(wire_sum)))
-        return locations, logit
+        return logit
 
     def get_config(self):
         config = super().get_config()

@@ -12,7 +12,11 @@ class IsInModel(ModelBaseClass):
                  is_in_question=None,
                  lexicon=None  # not used but always passed by trainer
                  ):
-        super().__init__(wire_dimension=wire_dimension)
+        super().__init__(wire_dimension=wire_dimension,
+                         context_circuit_key="context_circ",
+                         question_key="question_id",
+                         answer_key="answer_id"
+            )
 
         if is_in_question is None:
             self.is_in_question = create_feedforward_network(
@@ -24,11 +28,10 @@ class IsInModel(ModelBaseClass):
             self.is_in_question = is_in_question
 
     # @tf.function(jit_compile=True)
-    def get_answer_prob(self, outputs, tests):
+    def get_answer_prob(self, outputs, person):
         num_wires = outputs.shape[1] // self.wire_dimension
         output_wires = tf.split(outputs, num_wires, axis=1)
-        tests = np.array(tests).T
-        person, location = tests[0], tests[1]
+
         person = [(person, i) for i, person in enumerate(person)]
         person_vectors = tf.gather_nd(output_wires, person)
         answer_prob = []
@@ -40,7 +43,7 @@ class IsInModel(ModelBaseClass):
                 )
                 , axis=1))
         answer_prob = tf.transpose(answer_prob)
-        return location, answer_prob
+        return answer_prob
 
     def get_config(self):
         return {
