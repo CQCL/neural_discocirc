@@ -4,8 +4,6 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
-from network.individual_networks_models.individual_networks_trainer_base_class import \
-    IndividualNetworksTrainer
 from network.utils.utils import get_classification_vocab
 
 

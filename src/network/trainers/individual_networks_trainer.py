@@ -1,7 +1,4 @@
-from discopy.monoidal import Diagram
 import tensorflow as tf
-from sklearn.metrics import accuracy_score
-from tensorflow import keras
 
 from network.trainers.trainer_base_class import TrainerBaseClass
 from network.utils.utils import get_fast_nn_functor, initialize_boxes
@@ -47,7 +44,7 @@ class IndividualNetworksTrainer(TrainerBaseClass):
 
             model_dataset.append([
                 compiled_data["context"],
-                (compiled_data["question"], compiled_data["answer"])
+                [compiled_data["question"], compiled_data["answer"]]
             ])
 
         return model_dataset
@@ -77,7 +74,7 @@ class IndividualNetworksTrainer(TrainerBaseClass):
             "loss": self.loss_tracker.result(),
         }
 
-    @tf.function
+    # @tf.function
     def train_step_for_sample(self, dataset):
         with tf.GradientTape() as tape:
             context_circuit_model, test = dataset

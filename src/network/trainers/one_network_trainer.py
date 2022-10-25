@@ -211,9 +211,9 @@ class OneNetworkTrainer(TrainerBaseClass):
         max_input_length = OneNetworkTrainer.__get_max_input_length(diagram_parameters)
         max_layer_widths = OneNetworkTrainer.__get_max_layer_widths(diagram_parameters)
         diagram_parameters = OneNetworkTrainer.__pad_width_of_parameters(
-                                                    diagram_parameters,
-                                                    max_layer_widths,
-                                                    max_input_length)
+            diagram_parameters,
+            max_layer_widths,
+            max_input_length)
 
         return diagram_parameters
 
@@ -358,16 +358,23 @@ class OneNetworkTrainer(TrainerBaseClass):
     # ----------------------------------------------------------------
     # CALL
     # ----------------------------------------------------------------
-    # TODO: not compilable anymore. It was before moving batch_diagrams in here
-    # @tf.function(jit_compile=True)
     def call(self, params):
         batched_params = self.batch_diagrams(params)
+        return self._call(batched_params)
+
+    @tf.function(jit_compile=True)
+    def _call(self, batched_params):
+        """
+        Private call function for the jit_compilable part of call.
+
+        :param batched_params:
+        :return:
+        """
         input, weight, bias, mask = batched_params
         output = input
         for weight, bias, mask in zip(weight, bias, mask):
             output = self.dense_layer(output, weight, bias, mask)
         return output
-
     # ----------------------------------------------------------------
     # SAVING AND LOADING
     # ----------------------------------------------------------------

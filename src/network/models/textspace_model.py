@@ -25,7 +25,7 @@ class TextspaceModel(ModelBaseClass):
         super().__init__(wire_dimension=wire_dimension,
                          context_key="context_circ",
                          question_key="question_circ",
-                         answer_key="answer_id")
+                         answer_key="answer")
 
         if circuit_to_textspace is None:
             self.circuit_to_textspace = TextSpace(
@@ -64,14 +64,19 @@ class TextspaceModel(ModelBaseClass):
             outputs
         )
 
-        results = []
-        for i in range(len(outputs)):
-            question_vector = self.circuit_to_textspace(
-                question_circuits[i](tf.convert_to_tensor([[]])))
+        question_outputs = []
+        for question_circuit in question_circuits:
+            question_outputs.append(
+                question_circuit(tf.convert_to_tensor([[]]))
+            )
 
-            classifier_input = tf.concat([context_vectors[i], question_vector], axis=1)
-            results.append(self.qna_classifier_model(classifier_input))
-        return results
+        question_vectors = self.circuit_to_textspace(
+            tf.concat(question_outputs, axis=0)
+        )
+
+        classifier_input = tf.concat([context_vectors, question_vectors], axis=1)
+        return self.qna_classifier_model(classifier_input)
+
 
     def get_config(self):
         config = super().get_config()

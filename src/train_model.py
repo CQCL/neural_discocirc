@@ -11,7 +11,7 @@ from network.trainers.individual_networks_trainer import \
     IndividualNetworksTrainer
 from network.trainers.one_network_trainer import OneNetworkTrainer
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 import pickle
 from datetime import datetime
 from pathlib import Path
@@ -33,23 +33,23 @@ config = {
     "epochs": 100,
     "learning_rate": 0.001,
     "log_wandb": False,
-    "model": WeightedSumOfWiresModel,
-    "trainer": OneNetworkTrainer,
-    # "trainer": IndividualNetworksTrainer,
+    "model": TextspaceModel,
+    # "trainer": OneNetworkTrainer,
+    "trainer": IndividualNetworksTrainer,
     "lexicon": "en_qa1.p",
 }
 model_config = {
     "wire_dimension": 10,
     "hidden_layers": [10, 10],
-    "is_in_hidden_layers": [10, 10],
-    "relevance_hidden_layers": [10, 10],
+    # "is_in_hidden_layers": [10, 10],
+    # "relevance_hidden_layers": [10, 10],
     # "softmax_relevancies": False,
     # "softmax_logits": False,
-    # "expansion_hidden_layers": [20, 50],
-    # "contraction_hidden_layers": [50, 20],
-    # "latent_dimension": 100,
-    # "textspace_dimension": 20,
-    # "qna_hidden_layers": [10, 10]
+    "expansion_hidden_layers": [20, 50],
+    "contraction_hidden_layers": [50, 20],
+    "latent_dimension": 100,
+    "textspace_dimension": 20,
+    "qna_hidden_layers": [10, 10]
 }
 config.update(model_config)
 
@@ -129,7 +129,6 @@ def train(base_path, save_path, vocab_path,
     Path(save_base_path).mkdir(parents=True, exist_ok=True)
     name = save_base_path + "/" + model_class.__name__ + "_" \
            + datetime.utcnow().strftime("%h_%d_%H_%M")
-
 
     discocirc_trainer.save(name, save_traces=False)
 
