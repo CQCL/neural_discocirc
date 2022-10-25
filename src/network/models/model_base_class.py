@@ -22,9 +22,6 @@ class ModelBaseClass(keras.layers.Layer, ABC):
     # @tf.function(jit_compile=True)
     def compute_loss(self, outputs, tests):
         tests = np.array(tests).T
-
-        # TODO: if we print test (or anything), the InidivualNetworkTrainer will actually not print during training. How come?
-        # print(tests)
         answer_prob = self.get_answer_prob(outputs, tests[0])
         loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
             logits=answer_prob,

@@ -24,7 +24,7 @@ from network.utils.callbacks import ValidationAccuracy, \
     ModelCheckpointWithoutSaveTraces
 from sklearn.model_selection import train_test_split
 
-# this should the the path to \Neural-DisCoCirc
+# this should the path to \Neural-DisCoCirc
 base_path = os.path.abspath('..')
 # base_path = os.path.abspath('.')
 config = {
@@ -33,16 +33,16 @@ config = {
     "epochs": 100,
     "learning_rate": 0.001,
     "log_wandb": False,
-    "model": IsInModel,
-    # "trainer": OneNetworkTrainer,
-    "trainer": IndividualNetworksTrainer,
+    "model": WeightedSumOfWiresModel,
+    "trainer": OneNetworkTrainer,
+    # "trainer": IndividualNetworksTrainer,
     "lexicon": "en_qa1.p",
 }
 model_config = {
     "wire_dimension": 10,
     "hidden_layers": [10, 10],
     "is_in_hidden_layers": [10, 10],
-    # "relevance_hidden_layers": [10, 10],
+    "relevance_hidden_layers": [10, 10],
     # "softmax_relevancies": False,
     # "softmax_logits": False,
     # "expansion_hidden_layers": [20, 50],

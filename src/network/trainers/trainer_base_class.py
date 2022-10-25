@@ -2,6 +2,7 @@ from abc import abstractmethod
 
 from sklearn.metrics import accuracy_score
 from tensorflow import keras
+import tensorflow as tf
 
 class TrainerBaseClass(keras.Model):
     def __init__(self,
@@ -52,7 +53,7 @@ class TrainerBaseClass(keras.Model):
             print('predicting {} / {}'.format(i, len(dataset)), end='\r')
 
             data = dataset[i]
-            outputs = self.call(data[0])
+            outputs = self.call([data[0]])
             answer_prob = self.model_class.get_answer_prob(outputs,
                                                            [data[1][0]])
 
@@ -65,3 +66,20 @@ class TrainerBaseClass(keras.Model):
 
         accuracy = accuracy_score(location_true, location_predicted)
         return accuracy
+
+    def fit(self, train_dataset, validation_dataset, epochs, batch_size=32,
+            **kwargs):
+        print('compiling train dataset (size: {})...'.
+              format(len(train_dataset)))
+
+        self.dataset = self.compile_dataset(train_dataset)
+
+        print('compiling validation dataset (size: {})...'
+              .format(len(validation_dataset)))
+        self.validation_dataset = self.compile_dataset(validation_dataset)
+
+        input_index_dataset = tf.data.Dataset.range(len(self.dataset))
+        input_index_dataset = input_index_dataset.shuffle(len(self.dataset))
+        input_index_dataset = input_index_dataset.batch(batch_size)
+
+        return super().fit(input_index_dataset, epochs=epochs, **kwargs)

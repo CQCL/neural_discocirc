@@ -57,39 +57,31 @@ class AddScaledLogitsModel(ModelBaseClass):
         person = [(int(person), i) for i, person in enumerate(person)]
         person_vectors = tf.gather_nd(output_wires, person)
 
-        relevances = []
+        # TODO: stack for efficiency
+        # stack = tf.concat([tf.concat([person_vectors, output_wires[i]], axis=1) for i in range(num_wires)], axis=0)
+        # relevance = self.relevance_question(stack)
+
+        relevance = []
         for i in range(num_wires):
-            location_vectors = output_wires[i]
-            relevances.append(tf.squeeze(
+            relevance.append(tf.squeeze(
                 self.relevance_question(
-                    tf.concat([person_vectors, location_vectors], axis=1)
-                )
+                    tf.concat([person_vectors, output_wires[i]], axis=1)
+                ), axis=1
             ))
-
-        relevances = tf.convert_to_tensor(relevances)
+        relevance = tf.convert_to_tensor(relevance)
         if self.softmax_relevancies:
-            relevances = tf.nn.softmax(relevances)
+            relevance = tf.nn.softmax(relevance)
 
-        logit_sum = [tf.zeros(len(self.vocab_dict)) for _ in range(len(person))]
+        logit_sum = tf.zeros((len(outputs), len(self.vocab_dict)))
         for i in range(num_wires):
-            location_vectors = output_wires[i]
-
-            answer = self.is_in_question(
-                    tf.concat([person_vectors, location_vectors], axis=1)
+            logits = self.is_in_question(
+                tf.concat([person_vectors, output_wires[i]], axis=1)
             )
-
-            logit = tf.convert_to_tensor(answer)
+            logits = tf.convert_to_tensor(logits)
             if self.softmax_logits:
-                logit = tf.nn.softmax(logit)
+                logits = tf.nn.softmax(logits)
 
-            for j in range(len(logit)): # loop over each value in the batch (this should probably be done differently)
-                relevance = relevances[i]
-                if len(relevances.shape) > 1:
-                    relevance = relevances[i][j] # the reason why I loop over the batches. Not sure who to do this otherwise
-                logit_sum[j] = tf.math.add(
-                        tf.math.multiply(logit[j], relevance),
-                        logit_sum[j]
-                )
+            logit_sum = logit_sum + tf.einsum("ij,i->ij", logits, relevance[i])
 
         return logit_sum
 

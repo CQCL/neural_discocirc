@@ -36,10 +36,9 @@ class IsInModel(ModelBaseClass):
         person_vectors = tf.gather_nd(output_wires, person)
         answer_prob = []
         for i in range(num_wires):
-            location_vectors = output_wires[i]
             answer_prob.append(tf.squeeze(
                 self.is_in_question(
-                    tf.concat([person_vectors, location_vectors], axis=1)
+                    tf.concat([person_vectors, output_wires[i]], axis=1)
                 )
                 , axis=1))
         answer_prob = tf.transpose(answer_prob)

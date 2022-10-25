@@ -81,33 +81,11 @@ class IndividualNetworksTrainer(TrainerBaseClass):
     def train_step_for_sample(self, dataset):
         with tf.GradientTape() as tape:
             context_circuit_model, test = dataset
-            output_vector = self.call(context_circuit_model)
+            output_vector = self.call([context_circuit_model])
             loss = self.model_class.compute_loss(output_vector, [test])
             grad = tape.gradient(loss, self.trainable_weights,
-                                 # TODO: what is this?
                                  unconnected_gradients=tf.UnconnectedGradients.ZERO)
         return loss, grad
 
     def call(self, circuit):
-        return circuit(tf.convert_to_tensor([[]]))
-
-
-    def fit(self, train_dataset, validation_dataset, epochs, batch_size=32,
-            **kwargs):
-        print('compiling train dataset (size: {})...'.
-              format(len(train_dataset)))
-
-        self.dataset = self.compile_dataset(train_dataset)
-        dataset_size = len(self.dataset)
-
-        print('compiling validation dataset (size: {})...'
-              .format(len(validation_dataset)))
-        self.validation_dataset = self.compile_dataset(validation_dataset)
-
-        input_index_dataset = tf.data.Dataset.range(dataset_size)
-        input_index_dataset = input_index_dataset.shuffle(dataset_size)
-        input_index_dataset = input_index_dataset.batch(batch_size)
-
-        return super(IndividualNetworksTrainer, self).fit(input_index_dataset,
-                                                          epochs=epochs,
-                                                          **kwargs)
+        return circuit[0](tf.convert_to_tensor([[]]))

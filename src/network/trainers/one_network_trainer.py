@@ -89,21 +89,8 @@ class OneNetworkTrainer(TrainerBaseClass):
                 * (1 + len(self.hidden_layers)))
 
     # ----------------------------------------------------------------
-    # FIT
+    # COMPILATION
     # ----------------------------------------------------------------
-    def fit(self, dataset, validation_dataset, epochs=100, batch_size=32,
-            **kwargs):
-        self.dataset = self.compile_dataset(dataset)
-        self.validation_dataset = self.compile_dataset(validation_dataset)
-
-        input_index_dataset = tf.data.Dataset.range(len(dataset))
-        input_index_dataset = input_index_dataset.shuffle(len(dataset))
-        input_index_dataset = input_index_dataset.batch(batch_size)
-
-        # TODO: what is this?
-        input_index_dataset = input_index_dataset.prefetch(tf.data.AUTOTUNE)
-        return super().fit(input_index_dataset, epochs=epochs, **kwargs)
-
     def compile_dataset(self, dataset):
         model_dataset = []
         count = 0
@@ -380,32 +367,6 @@ class OneNetworkTrainer(TrainerBaseClass):
         for weight, bias, mask in zip(weight, bias, mask):
             output = self.dense_layer(output, weight, bias, mask)
         return output
-
-    # ----------------------------------------------------------------
-    # Accuracy
-    # ----------------------------------------------------------------
-    def get_accuracy(self, dataset):
-        location_predicted = []
-        location_true = []
-
-        for i in range(len(dataset)):
-            print('predicting {} / {}'.format(i, len(dataset)), end='\r')
-
-            data = dataset[i]
-            # TODO: this is the only line that is different to parent
-            outputs = self.call([data[0]])
-            answer_prob = self.model_class.get_answer_prob(outputs,
-                                                              [data[1][0]])
-
-            location_predicted.append(
-                self.model_class.get_prediction_result(answer_prob)
-            )
-            location_true.append(
-                self.model_class.get_expected_result(data[1][1])
-            )
-
-        accuracy = accuracy_score(location_true, location_predicted)
-        return accuracy
 
     # ----------------------------------------------------------------
     # SAVING AND LOADING

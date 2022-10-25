@@ -44,16 +44,13 @@ class AddLogitsModel(ModelBaseClass):
         person = [(int(person), i) for i, person in enumerate(person)]
         person_vectors = tf.gather_nd(output_wires, person)
 
-        logit_sum = [tf.zeros(len(self.vocab_dict))
-                        for _ in range(len(outputs))]
+        logit_sum = tf.zeros((len(outputs), len(self.vocab_dict)))
         for i in range(num_wires):
-            location_vectors = output_wires[i]
-
-            answer = self.is_in_question(
-                tf.concat([person_vectors, location_vectors], axis=1)
+            logit = self.is_in_question(
+                tf.concat([person_vectors, output_wires[i]], axis=1)
             )
 
-            logit = tf.convert_to_tensor(answer)
+            logit = tf.convert_to_tensor(logit)
             if self.softmax_logits:
                 logit = tf.nn.softmax(logit)
 

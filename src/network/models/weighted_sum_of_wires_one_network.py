@@ -52,17 +52,15 @@ class WeightedSumOfWiresModel(ModelBaseClass):
         persons = [(int(person), i) for i, person in enumerate(persons)]
         person_vectors = tf.gather_nd(output_wires, persons)
 
-        wire_sum = [tf.zeros(self.wire_dimension) for _ in
-                     range(len(persons))]
+        wire_sum = tf.zeros((len(outputs), self.wire_dimension))
         for i in range(num_wires):
-            location_vectors = output_wires[i]
-            relevances = self.relevance_question(
-                    tf.concat([person_vectors, location_vectors], axis=1)
-            )
-            for j in range(len(persons)):
-                wire_sum[j] = wire_sum[j] + location_vectors[j] * relevances[j]
+            relevances = tf.squeeze(self.relevance_question(
+                    tf.concat([person_vectors, output_wires[i]], axis=1)
+            ), axis=1)
+            wire_sum = wire_sum + tf.einsum("ij,i->ij", output_wires[i],
+                                            relevances)
 
-        logit = self.is_in_question(tf.transpose(tf.transpose(wire_sum)))
+        logit = self.is_in_question(wire_sum)
         return logit
 
     def get_config(self):
