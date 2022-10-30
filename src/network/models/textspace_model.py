@@ -57,14 +57,10 @@ class TextspaceModel(ModelBaseClass):
 
 
     # @tf.function(jit_compile=True)
-    def get_answer_prob(self, outputs, question_circuits):
-        context_vectors = self.circuit_to_textspace(outputs)
+    def get_answer_prob(self, contexts, questions):
+        context_vectors = self.circuit_to_textspace(contexts)
 
-        question_vectors = self.circuit_to_textspace(question_circuits)
-
-        # question_vectors = self.circuit_to_textspace(
-        #     tf.concat(question_outputs, axis=0)
-        # )
+        question_vectors = self.circuit_to_textspace(questions)
 
         classifier_input = tf.concat([context_vectors, question_vectors], axis=1)
         return self.qna_classifier_model(classifier_input)

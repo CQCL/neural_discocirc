@@ -46,13 +46,13 @@ class WeightedSumOfWiresModel(ModelBaseClass):
             self.relevance_question = relevance_question
 
     # @tf.function(jit_compile=True)
-    def get_answer_prob(self, outputs, persons):
-        num_wires = outputs.shape[1] // self.wire_dimension
-        output_wires = tf.split(outputs, num_wires, axis=1)
-        persons = [(int(person), i) for i, person in enumerate(persons)]
-        person_vectors = tf.gather_nd(output_wires, persons)
+    def get_answer_prob(self, contexts, questions):
+        num_wires = contexts.shape[1] // self.wire_dimension
+        output_wires = tf.split(contexts, num_wires, axis=1)
+        questions = [(int(person), i) for i, person in enumerate(questions)]
+        person_vectors = tf.gather_nd(output_wires, questions)
 
-        wire_sum = tf.zeros((len(outputs), self.wire_dimension))
+        wire_sum = tf.zeros((len(contexts), self.wire_dimension))
         for i in range(num_wires):
             relevances = tf.squeeze(self.relevance_question(
                     tf.concat([person_vectors, output_wires[i]], axis=1)

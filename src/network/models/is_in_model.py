@@ -28,12 +28,12 @@ class IsInModel(ModelBaseClass):
             self.is_in_question = is_in_question
 
     # @tf.function(jit_compile=True)
-    def get_answer_prob(self, outputs, person):
-        num_wires = len(outputs[0]) // self.wire_dimension
-        output_wires = tf.split(outputs, num_wires, axis=1)
+    def get_answer_prob(self, contexts, questions):
+        num_wires = len(contexts[0]) // self.wire_dimension
+        output_wires = tf.split(contexts, num_wires, axis=1)
 
-        person = [(person, i) for i, person in enumerate(person)]
-        person_vectors = tf.gather_nd(output_wires, person)
+        questions = [(person, i) for i, person in enumerate(questions)]
+        person_vectors = tf.gather_nd(output_wires, questions)
         answer_prob = []
         for i in range(num_wires):
             answer_prob.append(tf.squeeze(

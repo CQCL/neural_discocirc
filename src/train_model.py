@@ -5,6 +5,7 @@ from inspect import signature
 from network.models.add_logits_model import AddLogitsModel
 from network.models.add_scaled_logits_model import AddScaledLogitsModel
 from network.models.is_in_model import IsInModel
+from network.models.lstm_model import LSTMModel
 from network.models.textspace_model import TextspaceModel
 from network.models.weighted_sum_of_wires_one_network import \
     WeightedSumOfWiresModel
@@ -34,7 +35,7 @@ config = {
     "epochs": 20,
     "learning_rate": 0.001,
     "log_wandb": False,
-    "model": WeightedSumOfWiresModel,
+    "model": LSTMModel,
     # "trainer": OneNetworkTrainer,
     "trainer": IndividualNetworksTrainer,
     "lexicon": "en_qa1.p",
@@ -51,7 +52,8 @@ all_configs = {
     "contraction_hidden_layers": [50, 20],
     "latent_dimension": 100,
     "textspace_dimension": 20,
-    "qna_hidden_layers": [10, 10]
+    "qna_hidden_layers": [10, 10],
+    "lstm_dimension": 10,
 }
 
 

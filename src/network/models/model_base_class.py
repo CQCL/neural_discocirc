@@ -15,12 +15,12 @@ class ModelBaseClass(keras.layers.Layer, ABC):
         self.answer_key = answer_key
 
     @abstractmethod
-    def get_answer_prob(self, outputs, tests):
+    def get_answer_prob(self, contexts, questions):
         pass
 
     # @tf.function(jit_compile=True)
-    def compute_loss(self, outputs, question, answer):
-        answer_prob = self.get_answer_prob(outputs, question)
+    def compute_loss(self, contexts, question, answer):
+        answer_prob = self.get_answer_prob(contexts, question)
         loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
             logits=answer_prob,
             labels=[self.get_expected_result(location)
