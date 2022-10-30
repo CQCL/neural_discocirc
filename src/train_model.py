@@ -96,6 +96,7 @@ def train(base_path, save_path, vocab_path,
                                                          test_size=0.1,
                                                          random_state=1)
 
+    discocirc_trainer.model_class.build([])
     discocirc_trainer.compile(
         optimizer=keras.optimizers.Adam(learning_rate=config["learning_rate"]),
         run_eagerly=True

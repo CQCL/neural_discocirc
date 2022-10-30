@@ -60,7 +60,6 @@ class LSTMModel(ModelBaseClass):
             "lstm_dimension": self.lstm_dimension,
             "wire_dimension": self.wire_dimension,
             "vocab_dict": self.vocab_dict,
-            "lexicon": self.lexicon,
             "lstm_model": self.lstm_model,
             "classifier_model": self.classifier_model
         })
