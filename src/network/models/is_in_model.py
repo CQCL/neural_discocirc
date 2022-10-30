@@ -29,7 +29,7 @@ class IsInModel(ModelBaseClass):
 
     # @tf.function(jit_compile=True)
     def get_answer_prob(self, outputs, person):
-        num_wires = outputs.shape[1] // self.wire_dimension
+        num_wires = len(outputs[0]) // self.wire_dimension
         output_wires = tf.split(outputs, num_wires, axis=1)
 
         person = [(person, i) for i, person in enumerate(person)]

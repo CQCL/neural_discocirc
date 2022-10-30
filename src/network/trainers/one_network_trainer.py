@@ -2,7 +2,6 @@ import numpy as np
 from discopy import Box, Ty
 from discopy.monoidal import Swap
 import tensorflow as tf
-from sklearn.metrics import accuracy_score
 from tensorflow import keras
 
 from network.trainers.trainer_base_class import TrainerBaseClass
@@ -91,29 +90,8 @@ class OneNetworkTrainer(TrainerBaseClass):
     # ----------------------------------------------------------------
     # COMPILATION
     # ----------------------------------------------------------------
-    def compile_dataset(self, dataset):
-        model_dataset = []
-        count = 0
-
-        diagrams = [data[self.model_class.context_key] for data in
-                    dataset]
-        diagram_parameters = OneNetworkTrainer.compile_diagrams(diagrams, self.states, self.wire_dimension, self.hidden_layers, self.lexicon_weights, self.lexicon_biases)
-
-        for data in dataset:
-            print(count + 1, "/", len(dataset), end="\r")
-            count += 1
-
-            model_dataset.append([
-                diagram_parameters[repr(data[self.model_class.context_key])],
-                (data[self.model_class.question_key], data[self.model_class.answer_key])
-            ])
-
-        return model_dataset
-
-
-    @staticmethod
-    def compile_diagrams(diagrams, states, wire_dimension, hidden_layers, lexicon_weights, lexicon_biases):
-        diagram_parameters = OneNetworkTrainer.get_parameters_from_diagrams(diagrams, states, wire_dimension, hidden_layers, lexicon_weights, lexicon_biases)
+    def compile_diagrams(self, diagrams):
+        diagram_parameters = OneNetworkTrainer.get_parameters_from_diagrams(diagrams, self.states, self.wire_dimension, self.hidden_layers, self.lexicon_weights, self.lexicon_biases)
         diagram_parameters = OneNetworkTrainer.__pad_parameters(diagram_parameters)
         diagram_parameters = OneNetworkTrainer.__get_block_diag_paddings(
             diagram_parameters)
@@ -125,12 +103,12 @@ class OneNetworkTrainer(TrainerBaseClass):
     # ----------------------------------------------------------------
     @staticmethod
     def get_parameters_from_diagrams(diagrams, states, wire_dimension, hidden_layers, lexicon_weights, lexicon_biases):
-        diagram_parameters = {}
+        diagram_parameters = []
         for i, d in enumerate(diagrams):
             print("\rGetting parameters for diagram: {} of {}".format(i + 1,
                                                                       len(diagrams)),
                   end="")
-            diagram_parameters[repr(d)] = OneNetworkTrainer._get_parameters_from_diagram(d, states, wire_dimension, hidden_layers, lexicon_weights, lexicon_biases)
+            diagram_parameters.append(OneNetworkTrainer._get_parameters_from_diagram(d, states, wire_dimension, hidden_layers, lexicon_weights, lexicon_biases))
         print("\n")
 
         return diagram_parameters
@@ -220,8 +198,8 @@ class OneNetworkTrainer(TrainerBaseClass):
     @staticmethod
     def __pad_depth_of_parameters(diagram_parameters):
         max_depth = max(
-            [len(d['weights']) for d in diagram_parameters.values()])
-        for d in diagram_parameters.values():
+            [len(d['weights']) for d in diagram_parameters])
+        for d in diagram_parameters:
             diff = max_depth - len(d['weights'])
             if diff > 0:
                 last_layer_width = sum(w.shape[1] for w in d['weights'][-1])
@@ -236,14 +214,14 @@ class OneNetworkTrainer(TrainerBaseClass):
 
     @staticmethod
     def __get_max_input_length(diagram_parameters):
-        inputs = [d["input"] for d in diagram_parameters.values()]
+        inputs = [d["input"] for d in diagram_parameters]
         input_length = [sum(x.shape[0] for x in i) for i in inputs]
         return max(input_length)
 
     @staticmethod
     def __get_max_layer_widths(diagram_parameters):
         max_layer_widths = []
-        for d in diagram_parameters.values():
+        for d in diagram_parameters:
             for i in range(len(d['weights'])):
                 if len(max_layer_widths) <= i:
                     max_layer_widths.append((0, 0))
@@ -258,7 +236,7 @@ class OneNetworkTrainer(TrainerBaseClass):
     @staticmethod
     def __pad_width_of_parameters(diagram_parameters, max_layer_widths,
                                   max_input_length):
-        for d in diagram_parameters.values():
+        for d in diagram_parameters:
             input_size = sum(x.shape[0] for x in d['input'])
             if input_size < max_input_length:
                 diff = max_input_length - input_size
@@ -276,7 +254,7 @@ class OneNetworkTrainer(TrainerBaseClass):
 
     @staticmethod
     def __get_block_diag_paddings(diagram_parameters):
-        for d in diagram_parameters.values():
+        for d in diagram_parameters:
             d['weights_top_pads'] = []
             d['weights_bottom_pads'] = []
             for weights in d['weights']:
@@ -298,13 +276,7 @@ class OneNetworkTrainer(TrainerBaseClass):
     # TRAIN STEP
     # ----------------------------------------------------------------
     def train_step(self, batch_index):
-        diagrams_params = [self.dataset[i][0] for i in batch_index]
-        question_answer_pairs = [self.dataset[i][1] for i in batch_index]
-        with tf.GradientTape() as tape:
-            outputs = self.call(diagrams_params)
-            loss = self.model_class.compute_loss(outputs, question_answer_pairs)
-            grads = tape.gradient(loss, self.trainable_weights)
-
+        loss, grads = self.train_step_for_sample(batch_index)
         self.optimizer.apply_gradients(
             (grad, weights)
             for (grad, weights) in zip(grads, self.trainable_weights)
@@ -375,6 +347,7 @@ class OneNetworkTrainer(TrainerBaseClass):
         for weight, bias, mask in zip(weight, bias, mask):
             output = self.dense_layer(output, weight, bias, mask)
         return output
+
     # ----------------------------------------------------------------
     # SAVING AND LOADING
     # ----------------------------------------------------------------

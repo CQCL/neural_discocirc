@@ -22,39 +22,19 @@ class IndividualNetworksTrainer(TrainerBaseClass):
                                                model.wire_dimension)
         return model
 
-    def compile_dataset(self, dataset):
-        """
-        applies the nn_functor to the list of context circuit diagrams,
-        and saves these
-        """
-        model_dataset = []
-        count = 0
-        for data in dataset:
-            print(count + 1, "/", len(dataset), end="\r")
-            count += 1
+    def compile_diagrams(self, diagrams):
+        compiled_diagrams = []
+        for diag in diagrams:
+            compiled_diagrams.append(self.nn_functor(diag))
 
-            compiled_data = {}
-            for key, result in [(self.model_class.context_key, "context"),
-                                (self.model_class.question_key, "question"),
-                                (self.model_class.answer_key, "answer")]:
-                if key in self.model_class.data_requiring_compilation:
-                    compiled_data[result] = self.nn_functor(data[key])
-                else:
-                    compiled_data[result] = data[key]
+        return compiled_diagrams
 
-            model_dataset.append([
-                compiled_data["context"],
-                [compiled_data["question"], compiled_data["answer"]]
-            ])
-
-        return model_dataset
 
     def train_step(self, batch):
         losses = 0
         grads = None
         for idx in batch:
-            loss, grd = self.train_step_for_sample(
-                self.dataset[int(idx.numpy())])
+            loss, grd = self.train_step_for_sample([int(idx.numpy())])
             losses += loss
             if grads is None:
                 grads = grd
@@ -74,15 +54,6 @@ class IndividualNetworksTrainer(TrainerBaseClass):
             "loss": self.loss_tracker.result(),
         }
 
-    # @tf.function
-    def train_step_for_sample(self, dataset):
-        with tf.GradientTape() as tape:
-            context_circuit_model, test = dataset
-            output_vector = self.call([context_circuit_model])
-            loss = self.model_class.compute_loss(output_vector, [test])
-            grad = tape.gradient(loss, self.trainable_weights,
-                                 unconnected_gradients=tf.UnconnectedGradients.ZERO)
-        return loss, grad
-
     def call(self, circuit):
+        assert(len(circuit) == 1)
         return circuit[0](tf.convert_to_tensor([[]]))

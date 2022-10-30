@@ -1,7 +1,5 @@
 import numpy as np
 import tensorflow as tf
-from sklearn.metrics import accuracy_score
-
 
 from network.models.model_base_class import ModelBaseClass
 from network.utils.circuit_to_textspace import TextSpace
@@ -60,19 +58,13 @@ class TextspaceModel(ModelBaseClass):
 
     # @tf.function(jit_compile=True)
     def get_answer_prob(self, outputs, question_circuits):
-        context_vectors = self.circuit_to_textspace(
-            outputs
-        )
+        context_vectors = self.circuit_to_textspace(outputs)
 
-        question_outputs = []
-        for question_circuit in question_circuits:
-            question_outputs.append(
-                question_circuit(tf.convert_to_tensor([[]]))
-            )
+        question_vectors = self.circuit_to_textspace(question_circuits)
 
-        question_vectors = self.circuit_to_textspace(
-            tf.concat(question_outputs, axis=0)
-        )
+        # question_vectors = self.circuit_to_textspace(
+        #     tf.concat(question_outputs, axis=0)
+        # )
 
         classifier_input = tf.concat([context_vectors, question_vectors], axis=1)
         return self.qna_classifier_model(classifier_input)
@@ -87,7 +79,6 @@ class TextspaceModel(ModelBaseClass):
             "wire_dimension": self.wire_dimension,
             "max_wire_num": self.max_wire_num,
             "textspace_dimension": self.textspace_dimension,
-            "classification_vocab": self.classification_vocab,
             "vocab_dict": self.vocab_dict
         })
         return config

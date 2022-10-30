@@ -1,5 +1,6 @@
 import os
 import shutil
+from inspect import signature
 
 from network.models.add_logits_model import AddLogitsModel
 from network.models.add_scaled_logits_model import AddScaledLogitsModel
@@ -30,50 +31,62 @@ base_path = os.path.abspath('..')
 config = {
     "batch_size": 32,
     "dataset": "task1_train_dataset.pkl",
-    "epochs": 100,
+    "epochs": 20,
     "learning_rate": 0.001,
     "log_wandb": False,
-    "model": TextspaceModel,
+    "model": WeightedSumOfWiresModel,
     # "trainer": OneNetworkTrainer,
     "trainer": IndividualNetworksTrainer,
     "lexicon": "en_qa1.p",
 }
-model_config = {
+
+all_configs = {
     "wire_dimension": 10,
     "hidden_layers": [10, 10],
-    # "is_in_hidden_layers": [10, 10],
-    # "relevance_hidden_layers": [10, 10],
-    # "softmax_relevancies": False,
-    # "softmax_logits": False,
+    "is_in_hidden_layers": [10, 10],
+    "relevance_hidden_layers": [10, 10],
+    "softmax_relevancies": False,
+    "softmax_logits": False,
     "expansion_hidden_layers": [20, 50],
     "contraction_hidden_layers": [50, 20],
     "latent_dimension": 100,
     "textspace_dimension": 20,
     "qna_hidden_layers": [10, 10]
 }
-config.update(model_config)
 
 
 def train(base_path, save_path, vocab_path,
           data_path):
     model_class = config['model']
 
-    print('Training: {} with data {}'
-          .format(model_class.__name__, config["dataset"]))
+    print('Training: {} with trainer {} on data {}'
+          .format(model_class.__name__,
+                  config['trainer'].__name__,
+                  config["dataset"]))
 
     print('loading vocabulary...')
     with open(base_path + vocab_path + config["lexicon"], 'rb') as file:
         lexicon = pickle.load(file)
 
+
+    print('create model_config')
+    model_config = {}
+    for val in signature(model_class.__init__).parameters:
+        if val not in all_configs.keys():
+            continue
+        model_config[val] = all_configs[val]
+
+    config.update(model_config)
+
     print('initializing model...')
 
-    discocirc_trainer = config['trainer'](lexicon=lexicon, model_class=model_class, **model_config)
+    discocirc_trainer = config['trainer'](lexicon=lexicon, model_class=model_class, hidden_layers=all_configs['hidden_layers'], **model_config)
 
     print('loading pickled dataset...')
     with open(base_path + data_path + config['dataset'],
               "rb") as f:
         # dataset is a tuple (context_circuit,(question_word_index, answer_word_index))
-        dataset = pickle.load(f)[:5]
+        dataset = pickle.load(f)[:20]
 
     train_dataset, validation_dataset = train_test_split(dataset,
                                                          test_size=0.1,

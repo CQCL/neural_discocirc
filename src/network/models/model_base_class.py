@@ -1,6 +1,5 @@
 from abc import abstractmethod, ABC
 
-import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
@@ -20,13 +19,12 @@ class ModelBaseClass(keras.layers.Layer, ABC):
         pass
 
     # @tf.function(jit_compile=True)
-    def compute_loss(self, outputs, tests):
-        tests = np.array(tests).T
-        answer_prob = self.get_answer_prob(outputs, tests[0])
+    def compute_loss(self, outputs, question, answer):
+        answer_prob = self.get_answer_prob(outputs, question)
         loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
             logits=answer_prob,
             labels=[self.get_expected_result(location)
-                        for location in tests[1]]
+                        for location in answer]
         )
         return loss
 
