@@ -79,6 +79,8 @@ def train(base_path, save_path, vocab_path,
         model_config[val] = all_configs[val]
 
     config.update(model_config)
+    if config["log_wandb"]:
+        wandb.init(project="discocirc", entity="domlee", config=config)
 
     print('initializing model...')
 
@@ -151,10 +153,6 @@ def train(base_path, save_path, vocab_path,
 
     if config["log_wandb"]:
         wandb.save(name + '.zip')
-
-
-if config["log_wandb"]:
-    wandb.init(project="discocirc", entity="domlee", config=config)
 
 if __name__ == "__main__":
     train(base_path,
