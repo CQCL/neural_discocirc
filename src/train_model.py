@@ -31,7 +31,7 @@ base_path = os.path.abspath('..')
 # base_path = os.path.abspath('.')
 config = {
     "batch_size": 32,
-    "dataset": "task1_train_dataset.pkl",
+    "dataset": "task01_train_dataset.pkl",
     "epochs": 20,
     "learning_rate": 0.001,
     "log_wandb": False,
