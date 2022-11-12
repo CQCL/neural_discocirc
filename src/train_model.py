@@ -1,3 +1,4 @@
+import copy
 import os
 import shutil
 from inspect import signature
@@ -33,11 +34,11 @@ config = {
     "batch_size": 32,
     "dataset": "task01_train_dataset.pkl",
     "epochs": 20,
-    "learning_rate": 0.001,
+    "learning_rate": 0.01,
     "log_wandb": False,
     "model": LSTMModel,
-    # "trainer": OneNetworkTrainer,
-    "trainer": IndividualNetworksTrainer,
+    "trainer": OneNetworkTrainer,
+    # "trainer": IndividualNetworksTrainer,
     "lexicon": "en_qa1.p",
 }
 
@@ -55,6 +56,19 @@ all_configs = {
     "qna_hidden_layers": [10, 10],
     "lstm_dimension": 10,
 }
+
+def print_weights(pre_training, post_training):
+    print(len(pre_training), len(post_training))
+    for weight in pre_training:
+        found = False
+        for w in post_training:
+            if w.name == weight.name:
+                print(w.name)
+                print(weight - w)
+                found = True
+                break
+        if not found:
+            print("Weight not found: {}".format(weight.name))
 
 
 def train(base_path, save_path, vocab_path,
@@ -129,6 +143,9 @@ def train(base_path, save_path, vocab_path,
     if config["log_wandb"]:
         callbacks.append(WandbCallback())
 
+    model_weights = copy.deepcopy((discocirc_trainer.model_class.weights))
+    trainer_weights = copy.deepcopy((discocirc_trainer.weights))
+
     discocirc_trainer.fit(
         train_dataset,
         validation_dataset,
@@ -136,6 +153,12 @@ def train(base_path, save_path, vocab_path,
         batch_size=config['batch_size'],
         callbacks=callbacks
     )
+
+    print("----- Trainer weights: ------")
+    print_weights(trainer_weights, discocirc_trainer.weights)
+
+    print("----- Model weights: ------")
+    print_weights(model_weights, discocirc_trainer.model_class.weights)
 
     accuracy = discocirc_trainer.get_accuracy(discocirc_trainer.dataset)
     print("The accuracy on the train set is", accuracy)
