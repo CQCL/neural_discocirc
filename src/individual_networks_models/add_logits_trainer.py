@@ -4,9 +4,9 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
-from network.individual_networks_models.individual_networks_trainer_base_class import \
+from individual_networks_models.individual_networks_trainer_base_class import \
     IndividualNetworksTrainerBase
-from network.utils.utils import create_feedforward_network
+from utils.utils import create_feedforward_network
 
 
 class AddLogitsIndividualNetworksTrainer(IndividualNetworksTrainerBase):

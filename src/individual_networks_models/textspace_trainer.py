@@ -4,10 +4,10 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
-from network.individual_networks_models.individual_networks_trainer_base_class import \
+from individual_networks_models.individual_networks_trainer_base_class import \
     IndividualNetworksTrainerBase
-from network.utils.circuit_to_textspace import TextSpace
-from network.utils.utils import get_classification_vocab
+from utils.circuit_to_textspace import TextSpace
+from utils.utils import get_classification_vocab
 
 
 class TextspaceIndividualNetworksTrainer(IndividualNetworksTrainerBase):

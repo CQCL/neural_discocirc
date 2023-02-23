@@ -1,28 +1,28 @@
 import os
 import shutil
 
-from network.big_network_models.add_logits_one_network import \
+from big_network_models.add_logits_one_network import \
     AddLogitsOneNetworkTrainer
-from network.big_network_models.add_scaled_logits_one_network import \
+from big_network_models.add_scaled_logits_one_network import \
     AddScaledLogitsOneNetworkTrainer
-from network.big_network_models.is_in_one_network import \
+from big_network_models.is_in_one_network import \
     IsInOneNetworkTrainer
-from network.big_network_models.one_network_trainer_base import \
+from big_network_models.one_network_trainer_base import \
     OneNetworkTrainerBase
-from network.big_network_models.textspace_one_network import \
+from big_network_models.textspace_one_network import \
     TextspaceOneNetworkTrainer
-from network.big_network_models.weighted_sum_of_wires_one_network import \
+from big_network_models.weighted_sum_of_wires_one_network import \
     WeightedSumOfWiresOneNetworkTrainer
-from network.individual_networks_models.add_logits_trainer import \
+from individual_networks_models.add_logits_trainer import \
     AddLogitsIndividualNetworksTrainer
-from network.individual_networks_models.add_scaled_logits_trainer import \
+from individual_networks_models.add_scaled_logits_trainer import \
     AddScaledLogitsIndividualNetworksTrainer
 
-from network.individual_networks_models.is_in_trainer import \
+from individual_networks_models.is_in_trainer import \
     IsInIndividualNetworksTrainer
-from network.individual_networks_models.individual_networks_trainer_base_class import \
+from individual_networks_models.individual_networks_trainer_base_class import \
     IndividualNetworksTrainerBase
-from network.individual_networks_models.textspace_trainer import \
+from individual_networks_models.textspace_trainer import \
     TextspaceIndividualNetworksTrainer
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -34,7 +34,7 @@ from tensorflow import keras
 import wandb
 from wandb.integration.keras import WandbCallback
 
-from network.utils.callbacks import ValidationAccuracy, \
+from utils.callbacks import ValidationAccuracy, \
     ModelCheckpointWithoutSaveTraces
 from sklearn.model_selection import train_test_split
 

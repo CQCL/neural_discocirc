@@ -140,3 +140,5 @@ logs/
 checkpoints/
 saved_models/
 wandb/
+
+.DS_Store

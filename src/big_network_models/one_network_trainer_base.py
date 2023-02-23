@@ -5,7 +5,7 @@ from discopy.monoidal import Swap
 import tensorflow as tf
 from sklearn.metrics import accuracy_score
 from tensorflow import keras
-from network.utils.utils import get_box_name, get_params_dict_from_tf_variables
+from utils.utils import get_box_name, get_params_dict_from_tf_variables
 
 
 class MyDenseLayer(keras.layers.Layer):

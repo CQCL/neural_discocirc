@@ -5,7 +5,7 @@ import tensorflow as tf
 from sklearn.metrics import accuracy_score
 from tensorflow import keras
 
-from network.utils.utils import get_fast_nn_functor, initialize_boxes
+from utils.utils import get_fast_nn_functor, initialize_boxes
 
 
 class IndividualNetworksTrainerBase(ABC, keras.Model):
@@ -93,7 +93,7 @@ class IndividualNetworksTrainerBase(ABC, keras.Model):
     def get_prediction_result(self, call_result):
         """
         Given the result of a single call to the network,
-        give the prediction of the network.
+        give the prediction of the 
 
         :param call_result: The results from self.call(...)
         :return: The prediction of the model,
@@ -106,7 +106,7 @@ class IndividualNetworksTrainerBase(ABC, keras.Model):
         """
         Given the ground truth in the dataset, translate into value that model
         should predict after calling get_prediction_result()
-        on the output of the network.
+        on the output of the 
 
         :param given_value: The ground truth given in the dataset.
         :return: The expected output of the model.

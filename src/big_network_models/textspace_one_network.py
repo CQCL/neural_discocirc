@@ -3,9 +3,9 @@ import tensorflow as tf
 from sklearn.metrics import accuracy_score
 from tensorflow import keras
 
-from network.big_network_models.one_network_trainer_base import OneNetworkTrainerBase
-from network.utils.circuit_to_textspace import TextSpace
-from network.utils.utils import create_feedforward_network
+from big_network_models.one_network_trainer_base import OneNetworkTrainerBase
+from utils.circuit_to_textspace import TextSpace
+from utils.utils import create_feedforward_network
 
 
 class TextspaceOneNetworkTrainer(OneNetworkTrainerBase):

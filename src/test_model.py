@@ -6,13 +6,13 @@ from pandas import DataFrame
 import pickle
 from tensorflow import keras
 
-from network.big_network_models.add_scaled_logits_one_network import \
+from big_network_models.add_scaled_logits_one_network import \
     AddScaledLogitsOneNetworkTrainer
-from network.big_network_models.is_in_one_network import \
+from big_network_models.is_in_one_network import \
     IsInOneNetworkTrainer
-from network.individual_networks_models.individual_networks_trainer_base_class import \
+from individual_networks_models.individual_networks_trainer_base_class import \
     IndividualNetworksTrainerBase
-from network.individual_networks_models.is_in_trainer import \
+from individual_networks_models.is_in_trainer import \
     IsInIndividualNetworksTrainer
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"

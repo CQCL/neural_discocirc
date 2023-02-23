@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow import keras
 
-from network.utils.utils import create_feedforward_network
+from utils.utils import create_feedforward_network
 
 
 class TextSpace(keras.Model):
