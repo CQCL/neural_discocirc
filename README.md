@@ -5,22 +5,10 @@ DisCoCirc experiments using neural networks
 Required packages: `discopy`, `lambeq`, `tensorflow`, `sklearn`
 
 Note - we currently need a special branch of lambeq in order to get the head information from our BobcatParser CCG parses. 
-To install this branch of lambeq, use:
+If you need to parse text, you should install this branch of lambeq:
 ```
 pip install git+https://github.com/CQCL-DEV/lambeq.git@bobcat-deps
 ```
-
-# CCG2DisCoCirc
-To convert a sentence into a DisCoCirc diagram, we perform the following steps:
-1. Parse the sentence to CCG (i.e. using Bobcat)
-2. Convert ccg parse to a lambda expression
-3. Pull out the nouns
-4. Do type expansion 
-5. Convert into diagram
-
-For multiple sentences, we then compose the diagrams accordingly
-
-
 
 # bAbI Tasks
 
