@@ -33,11 +33,12 @@ base_path = os.path.abspath('..')
 output_config = {
     "save_model": False,
     "print_weights": False,
+    "tb_callback": False,
 }
 
 training_config = {
     "batch_size": 32,
-    "dataset_size": -1,  # -1 for entire dataset
+    "dataset_size": 20,  # -1 for entire dataset
     "dataset": "task01_train_dataset.pkl",
     "epochs": 20,
     "learning_rate": 0.01,
@@ -116,7 +117,7 @@ def train(base_path, save_path, vocab_path,
               "rb") as f:
         # dataset is a tuple (context_circuit,(question_word_index, answer_word_index))
         dataset = pickle.load(f)
-        if training_config['dataset_size'] == -1:
+        if training_config['dataset_size'] != -1:
             dataset = dataset[:training_config['dataset_size']]
 
     train_dataset, validation_dataset = train_test_split(dataset,
