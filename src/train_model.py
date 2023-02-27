@@ -30,8 +30,14 @@ from sklearn.model_selection import train_test_split
 # this should the path to \Neural-DisCoCirc
 base_path = os.path.abspath('..')
 # base_path = os.path.abspath('.')
-config = {
+output_config = {
+    "save_model": False,
+    "print_weights": False,
+}
+
+training_config = {
     "batch_size": 32,
+    "dataset_size": -1,  # -1 for entire dataset
     "dataset": "task01_train_dataset.pkl",
     "epochs": 20,
     "learning_rate": 0.01,
@@ -42,7 +48,7 @@ config = {
     "lexicon": "en_qa1.p",
 }
 
-all_configs = {
+model_configs = {
     "wire_dimension": 10,
     "hidden_layers": [10, 10],
     "is_in_hidden_layers": [10, 10],
@@ -56,6 +62,7 @@ all_configs = {
     "qna_hidden_layers": [10, 10],
     "lstm_dimension": 10,
 }
+
 
 def print_weights(pre_training, post_training):
     print(len(pre_training), len(post_training))
@@ -73,38 +80,44 @@ def print_weights(pre_training, post_training):
 
 def train(base_path, save_path, vocab_path,
           data_path):
-    model_class = config['model']
+    model_class = training_config['model']
+    print('create model_config...')
+    model_config = {}
+    for val in signature(model_class.__init__).parameters:
+        if val not in model_configs.keys():
+            continue
+        model_config[val] = model_configs[val]
+
+    training_config.update(model_config)
+    if training_config["log_wandb"]:
+        print("initialise wandb...")
+        wandb.init(project="discocirc", entity="domlee",
+                   config=training_config)
 
     print('Training: {} with trainer {} on data {}'
           .format(model_class.__name__,
-                  config['trainer'].__name__,
-                  config["dataset"]))
+                  training_config['trainer'].__name__,
+                  training_config["dataset"]))
 
     print('loading vocabulary...')
-    with open(base_path + vocab_path + config["lexicon"], 'rb') as file:
+    with open(base_path + vocab_path + training_config["lexicon"],
+              'rb') as file:
         lexicon = pickle.load(file)
 
-
-    print('create model_config')
-    model_config = {}
-    for val in signature(model_class.__init__).parameters:
-        if val not in all_configs.keys():
-            continue
-        model_config[val] = all_configs[val]
-
-    config.update(model_config)
-    if config["log_wandb"]:
-        wandb.init(project="discocirc", entity="domlee", config=config)
-
-    print('initializing model...')
-
-    discocirc_trainer = config['trainer'](lexicon=lexicon, model_class=model_class, hidden_layers=all_configs['hidden_layers'], **model_config)
+    print('initializing trainer...')
+    discocirc_trainer = training_config['trainer'](lexicon=lexicon,
+                            model_class=model_class,
+                            hidden_layers=model_configs['hidden_layers'],
+                            **model_config
+    )
 
     print('loading pickled dataset...')
-    with open(base_path + data_path + config['dataset'],
+    with open(base_path + data_path + training_config['dataset'],
               "rb") as f:
         # dataset is a tuple (context_circuit,(question_word_index, answer_word_index))
-        dataset = pickle.load(f)[:20]
+        dataset = pickle.load(f)
+        if training_config['dataset_size'] == -1:
+            dataset = dataset[:training_config['dataset_size']]
 
     train_dataset, validation_dataset = train_test_split(dataset,
                                                          test_size=0.1,
@@ -112,35 +125,38 @@ def train(base_path, save_path, vocab_path,
 
     discocirc_trainer.model_class.build([])
     discocirc_trainer.compile(
-        optimizer=keras.optimizers.Adam(learning_rate=config["learning_rate"]),
+        optimizer=keras.optimizers.Adam(
+            learning_rate=training_config["learning_rate"]),
         run_eagerly=True
     )
 
     datetime_string = datetime.now().strftime("%B_%d_%H_%M")
-
-    tb_callback = keras.callbacks.TensorBoard(
-        log_dir='logs/{}'.format(datetime_string),
-        histogram_freq=0,
-        write_graph=True,
-        write_images=True,
-        update_freq='batch',
-    )
-
-    save_base_path = base_path + "/checkpoints/"
-    checkpoint_callback = ModelCheckpointWithoutSaveTraces(
-        filepath='{}/{}'.format(save_base_path, datetime_string),
-        save_freq=20 * config["batch_size"]
-    )
-
     validation_callback = ValidationAccuracy(discocirc_trainer.get_accuracy,
-                                             interval=1,
-                                             log_wandb=config["log_wandb"])
+                    interval=1, log_wandb=training_config["log_wandb"])
 
     print('training...')
 
-    callbacks = [tb_callback, validation_callback, checkpoint_callback]
+    callbacks = [validation_callback]
 
-    if config["log_wandb"]:
+    if output_config['tb_callback']:
+        tb_callback = keras.callbacks.TensorBoard(
+            log_dir='logs/{}'.format(datetime_string),
+            histogram_freq=0,
+            write_graph=True,
+            write_images=True,
+            update_freq='batch',
+        )
+        callbacks.append(tb_callback)
+
+    if output_config['save_model']:
+        save_base_path = base_path + "/checkpoints/"
+        checkpoint_callback = ModelCheckpointWithoutSaveTraces(
+            filepath='{}/{}'.format(save_base_path, datetime_string),
+            save_freq=20 * training_config["batch_size"]
+        )
+        callbacks.append(checkpoint_callback)
+
+    if training_config["log_wandb"]:
         callbacks.append(WandbCallback())
 
     model_weights = copy.deepcopy((discocirc_trainer.model_class.weights))
@@ -149,34 +165,37 @@ def train(base_path, save_path, vocab_path,
     discocirc_trainer.fit(
         train_dataset,
         validation_dataset,
-        epochs=config['epochs'],
-        batch_size=config['batch_size'],
+        epochs=training_config['epochs'],
+        batch_size=training_config['batch_size'],
         callbacks=callbacks
     )
 
-    print("----- Trainer weights: ------")
-    print_weights(trainer_weights, discocirc_trainer.weights)
+    if output_config['print_weights']:
+        print("----- Trainer weights: ------")
+        print_weights(trainer_weights, discocirc_trainer.weights)
 
-    print("----- Model weights: ------")
-    print_weights(model_weights, discocirc_trainer.model_class.weights)
+        print("----- Model weights: ------")
+        print_weights(model_weights, discocirc_trainer.model_class.weights)
 
     accuracy = discocirc_trainer.get_accuracy(discocirc_trainer.dataset)
     print("The accuracy on the train set is", accuracy)
 
-    if config["log_wandb"]:
+    if training_config["log_wandb"]:
         wandb.log({"train_accuracy": accuracy})
 
-    save_base_path = base_path + save_path + model_class.__name__
-    Path(save_base_path).mkdir(parents=True, exist_ok=True)
-    name = save_base_path + "/" + model_class.__name__ + "_" \
-           + datetime.utcnow().strftime("%h_%d_%H_%M")
+    if output_config['save_model']:
+        save_base_path = base_path + save_path + model_class.__name__
+        Path(save_base_path).mkdir(parents=True, exist_ok=True)
+        name = save_base_path + "/" + model_class.__name__ + "_" \
+               + datetime.utcnow().strftime("%h_%d_%H_%M")
 
-    discocirc_trainer.save(name, save_traces=False)
+        discocirc_trainer.save(name, save_traces=False)
 
-    shutil.make_archive(name, 'zip', name)
+        shutil.make_archive(name, 'zip', name)
 
-    if config["log_wandb"]:
-        wandb.save(name + '.zip')
+        if training_config["log_wandb"]:
+            wandb.save(name + '.zip')
+
 
 if __name__ == "__main__":
     train(base_path,
