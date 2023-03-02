@@ -129,8 +129,8 @@ class TrainerBaseClass(keras.Model):
               .format(len(validation_dataset)))
         self.validation_dataset = self.compile_dataset(validation_dataset)
 
-        input_index_dataset = tf.data.Dataset.range(len(self.dataset))
-        input_index_dataset = input_index_dataset.shuffle(len(self.dataset))
+        input_index_dataset = tf.data.Dataset.range(len(train_dataset))
+        input_index_dataset = input_index_dataset.shuffle(len(train_dataset))
         input_index_dataset = input_index_dataset.batch(batch_size)
 
         return super().fit(input_index_dataset, epochs=epochs, **kwargs)
