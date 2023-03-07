@@ -82,7 +82,7 @@ def print_weights(pre_training, post_training):
 def train(base_path, save_path, vocab_path,
           data_path):
     model_class = training_config['model']
-    print('create model_config...')
+    print('Create model_config...')
     model_config = {}
     for val in signature(model_class.__init__).parameters:
         if val not in model_configs.keys():
@@ -91,7 +91,7 @@ def train(base_path, save_path, vocab_path,
 
     training_config.update(model_config)
     if training_config["log_wandb"]:
-        print("initialise wandb...")
+        print("Initialise wandb...")
         wandb.init(project="discocirc", entity="domlee",
                    config=training_config)
 
@@ -100,19 +100,19 @@ def train(base_path, save_path, vocab_path,
                   training_config['trainer'].__name__,
                   training_config["dataset"]))
 
-    print('loading vocabulary...')
+    print('Loading vocabulary...')
     with open(base_path + vocab_path + training_config["lexicon"],
               'rb') as file:
         lexicon = pickle.load(file)
 
-    print('initializing trainer...')
+    print('Initializing trainer...')
     discocirc_trainer = training_config['trainer'](lexicon=lexicon,
                             model_class=model_class,
                             hidden_layers=model_configs['hidden_layers'],
                             **model_config
     )
 
-    print('loading pickled dataset...')
+    print('Loading pickled dataset...')
     with open(base_path + data_path + training_config['dataset'],
               "rb") as f:
         # dataset is a tuple (context_circuit,(question_word_index, answer_word_index))
@@ -135,7 +135,7 @@ def train(base_path, save_path, vocab_path,
     validation_callback = ValidationAccuracy(discocirc_trainer.get_accuracy,
                     interval=1, log_wandb=training_config["log_wandb"])
 
-    print('training...')
+    print('Training...')
 
     callbacks = [validation_callback]
 
