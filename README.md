@@ -4,6 +4,18 @@ DisCoCirc experiments using neural networks
 
 Required packages: `discopy`, `lambeq`, `tensorflow`, `sklearn`
 
+Note - we currently need a special branch of lambeq in order to get the head information from our BobcatParser CCG parses. 
+If you need to parse text, you should install this branch of lambeq:
+```
+pip install git+https://github.com/CQCL-DEV/lambeq.git@bobcat-deps
+```
+and then install the discocirc parser:
+```
+pip install git+https://github.com/CQCL/text_to_discocirc.git
+```
+
+# bAbI Tasks
+
 To train a model, run `train_model.py`. You can specify the model (i.e. trainer), dataset and hyperparameters.
 The list of models is summarized in the table below.
 
