@@ -23,7 +23,7 @@ from tensorflow import keras
 import wandb
 from wandb.integration.keras import WandbCallback
 
-from network.utils.callbacks import ValidationAccuracy, \
+from utils.callbacks import ValidationAccuracy, \
     ModelCheckpointWithoutSaveTraces
 from sklearn.model_selection import train_test_split
 
@@ -43,9 +43,9 @@ training_config = {
     "epochs": 20,
     "learning_rate": 0.01,
     "log_wandb": False,
-    "model": LSTMModel,
-    "trainer": OneNetworkTrainer,
-    # "trainer": IndividualNetworksTrainer,
+    "model": AddScaledLogitsModel,
+    # "trainer": OneNetworkTrainer,
+    "trainer": IndividualNetworksTrainer,
     "lexicon": "en_qa1.p",
 }
 

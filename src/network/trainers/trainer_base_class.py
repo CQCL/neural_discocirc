@@ -28,8 +28,7 @@ class TrainerBaseClass(keras.Model):
                     self.model_class.answer_key]:
             current_data = [data[key] for data in dataset]
             if key in self.model_class.data_requiring_compilation:
-                diagram_parameters = self.compile_diagrams(current_data)
-                compiled_data[key] = diagram_parameters
+                compiled_data[key] = self.compile_diagrams(current_data)
             else:
                 compiled_data[key] = current_data
 

@@ -5,7 +5,7 @@ import tensorflow as tf
 from tensorflow import keras
 
 from network.trainers.trainer_base_class import TrainerBaseClass
-from network.utils.utils import get_box_name, get_params_dict_from_tf_variables
+from utils.utils import get_box_name, get_params_dict_from_tf_variables
 
 
 class MyDenseLayer(keras.layers.Layer):
