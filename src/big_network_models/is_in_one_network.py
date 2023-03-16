@@ -12,9 +12,10 @@ class IsInOneNetworkTrainer(OneNetworkTrainerBase):
                  is_in_hidden_layers=[10], **kwargs):
         super(IsInOneNetworkTrainer, self).__init__(**kwargs)
         self.is_in_question = is_in_question
+        wire_dimension = kwargs["wire_dimension"]
         if is_in_question is None:
             self.is_in_question = create_feedforward_network(
-                input_dim=2 * 10,
+                input_dim=2 * wire_dimension,
                 output_dim=1,
                 hidden_layers=is_in_hidden_layers
             )

@@ -25,7 +25,7 @@ from individual_networks_models.individual_networks_trainer_base_class import \
 from individual_networks_models.textspace_trainer import \
     TextspaceIndividualNetworksTrainer
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 import pickle
 from datetime import datetime
 from pathlib import Path
@@ -43,24 +43,25 @@ base_path = os.path.abspath('..')
 # base_path = os.path.abspath('.')
 config = {
     "batch_size": 32,
-    "dataset": "textspace_dataset_task1_train.pkl",
+    "dataset": "isin_dataset_task1_train.pkl",
     "epochs": 50,
     "learning_rate": 0.01,
-    "log_wandb": False,
-    "trainer": TextspaceIndividualNetworksTrainer,
+    "log_wandb": True,
+    "trainer": IsInOneNetworkTrainer,
     "vocab": "en_qa1.p",
 }
 model_config = {
     "hidden_layers": [10, 10],
+    "is_in_hidden_layers": [10],
     # "is_in_hidden_layers": [10, 10],
     "wire_dimension": 10,
     # "softmax_relevancies": False,
     # "softmax_logits": False,
     # "relevance_hidden_layers": [10, 10],
-    "expansion_hidden_layers": [20, 50],
-    "contraction_hidden_layers": [50, 20],
-    "latent_dimension": 100,
-    "textspace_dimension": 20,
+    # "expansion_hidden_layers": [20, 50],
+    # "contraction_hidden_layers": [50, 20],
+    # "latent_dimension": 100,
+    # "textspace_dimension": 20,
 }
 config.update(model_config)
 
@@ -84,7 +85,7 @@ def train(base_path, save_path, vocab_path,
     with open(base_path + data_path + config['dataset'],
               "rb") as f:
         # dataset is a tuple (context_circuit,(question_word_index, answer_word_index))
-        dataset = pickle.load(f)[:10]
+        dataset = pickle.load(f) #[:10]
 
     train_dataset, validation_dataset = train_test_split(dataset,
                                                          test_size=0.1,
@@ -142,6 +143,7 @@ def train(base_path, save_path, vocab_path,
            + datetime.utcnow().strftime("%h_%d_%H_%M")
 
 
+    # rid for not save
     discocirc_trainer.save(name, save_traces=False)
 
     shutil.make_archive(name, 'zip', name)
@@ -151,7 +153,7 @@ def train(base_path, save_path, vocab_path,
 
 
 if config["log_wandb"]:
-    wandb.init(project="discocirc", entity="domlee", config=config)
+    wandb.init(project="initial_tests", name="isin_wd10_11/03", entity="sarajones", config=config)
 
 if __name__ == "__main__":
     train(base_path,
