@@ -90,6 +90,7 @@ def train(base_path, save_path, vocab_path,
         model_config[val] = model_configs[val]
 
     training_config.update(model_config)
+    # TODO: training config does not have hidden layers
     if training_config["log_wandb"]:
         print("Initialise wandb...")
         wandb.init(project="discocirc", entity="domlee",
