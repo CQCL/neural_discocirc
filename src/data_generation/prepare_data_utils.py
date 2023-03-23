@@ -47,12 +47,12 @@ def task_file_reader(path):
         question_splits = [i for i, line in enumerate(story) if '?' in line]
         for index in question_splits:
             # record the context corresponding to each question
-            contexts.append([line for line in story[:index] if '?' not in line])
+            contexts.append([line.lower() for line in story[:index] if '?' not in line])
             # record the question
             qnas.append(story[index])
 
 
     # split qna into questions and answers
-    questions = [qna.split(' \t')[0] for qna in qnas]
-    answers = [qna.split('\t')[1] for qna in qnas]
+    questions = [qna.split('\t')[0].lower() for qna in qnas]
+    answers = [qna.split('\t')[1].lower() for qna in qnas]
     return contexts, questions, answers
