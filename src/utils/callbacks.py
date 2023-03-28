@@ -17,6 +17,20 @@ class ValidationAccuracy(tf.keras.callbacks.Callback):
             if self.log_wandb:
                 wandb.log({'validation accuracy': score})
 
+class TrainAccuracy(tf.keras.callbacks.Callback):
+    def __init__(self, get_accuracy_fn, interval=1, log_wandb=False):
+        super(TrainAccuracy, self).__init__()
+        self.get_accuracy_fn = get_accuracy_fn
+        self.interval = interval
+        self.log_wandb = log_wandb
+
+    def on_epoch_begin(self, epoch, logs={}):
+        if epoch % self.interval == 0 and self.model.dataset:
+            score = self.get_accuracy_fn(self.model.dataset)
+            tf.print("interval evaluation - epoch: {:d} - score: {:.6f}".format(epoch, score))
+            tf.summary.scalar('train accuracy', data=score, step=epoch)
+            if self.log_wandb:
+                wandb.log({'train accuracy': score})
 
 class ModelCheckpointWithoutSaveTraces(tf.keras.callbacks.ModelCheckpoint):
     ################################################################

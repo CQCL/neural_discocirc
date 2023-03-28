@@ -25,14 +25,14 @@ class IsInOneNetworkTrainerTask6(OneNetworkTrainerBase):
         y_n_answer, answer_prob = self._get_answer_prob(outputs, tests)
         # loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=answer_prob, labels=location)
         bce = tf.keras.losses.BinaryCrossentropy(
-            from_logits=False)
+            from_logits=False, reduction=tf.keras.losses.Reduction.NONE)
         # label_smoothing = 0.0,
         # axis = -1,
         # reduction = losses_utils.ReductionV2.AUTO,
         # name = 'binary_crossentropy'
 
-        y_n_answer = y_n_answer.tolist()
-        answer_prob = answer_prob.numpy().squeeze().tolist()
+        y_n_answer = (np.expand_dims(y_n_answer, axis=1)).tolist()
+        answer_prob = (answer_prob.numpy()).tolist()
         loss = bce(y_n_answer, answer_prob).numpy()
         loss = tf.convert_to_tensor(loss)
         return loss
