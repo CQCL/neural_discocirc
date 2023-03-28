@@ -25,7 +25,7 @@ class IsInOneNetworkTrainerTask6(OneNetworkTrainerBase):
         y_n_answer, answer_prob = self._get_answer_prob(outputs, tests)
         # loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=answer_prob, labels=location)
         bce = tf.keras.losses.BinaryCrossentropy(
-            from_logits=True)
+            from_logits=False)
         # label_smoothing = 0.0,
         # axis = -1,
         # reduction = losses_utils.ReductionV2.AUTO,
