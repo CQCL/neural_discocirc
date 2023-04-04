@@ -27,7 +27,7 @@ class TrainAccuracy(tf.keras.callbacks.Callback):
     def on_epoch_begin(self, epoch, logs={}):
         if epoch % self.interval == 0 and self.model.dataset:
             score = self.get_accuracy_fn(self.model.dataset)
-            tf.print("interval evaluation - epoch: {:d} - score: {:.6f}".format(epoch, score))
+            tf.print("training accuracy - epoch: {:d} - score: {:.6f}".format(epoch, score))
             tf.summary.scalar('train accuracy', data=score, step=epoch)
             if self.log_wandb:
                 wandb.log({'train accuracy': score})
