@@ -49,7 +49,7 @@ config = {
     "dataset": "isin_dataset_task6_train.pkl",
     "epochs": 50,
     "learning_rate": 0.01,
-    "log_wandb": False,
+    "log_wandb": True,
     "trainer": IsInOneNetworkTrainerTask6,
     "vocab": "en_qa6.p",
 }
