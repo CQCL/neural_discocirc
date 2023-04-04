@@ -31,8 +31,9 @@ class IsInOneNetworkTrainerTask6(OneNetworkTrainerBase):
         # reduction = losses_utils.ReductionV2.AUTO,
         # name = 'binary_crossentropy'
 
-        y_n_answer = (np.expand_dims(y_n_answer, axis=1)).tolist()
-        answer_prob = (answer_prob.numpy()).tolist()
+        #y_n_answer = (np.expand_dims(y_n_answer, axis=1)).tolist()
+        #answer_prob = (answer_prob.numpy()).tolist()
+        y_n_answer = np.expand_dims(tf.convert_to_tensor(y_n_answer, dtype=tf.float32), axis = 1)
         loss = bce(y_n_answer, answer_prob)
         # loss = bce(y_n_answer, answer_prob).numpy()
         # loss = tf.convert_to_tensor(loss)
