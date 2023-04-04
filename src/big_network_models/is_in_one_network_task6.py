@@ -33,8 +33,9 @@ class IsInOneNetworkTrainerTask6(OneNetworkTrainerBase):
 
         y_n_answer = (np.expand_dims(y_n_answer, axis=1)).tolist()
         answer_prob = (answer_prob.numpy()).tolist()
-        loss = bce(y_n_answer, answer_prob).numpy()
-        loss = tf.convert_to_tensor(loss)
+        loss = bce(y_n_answer, answer_prob)
+        # loss = bce(y_n_answer, answer_prob).numpy()
+        # loss = tf.convert_to_tensor(loss)
         return loss
 
 
