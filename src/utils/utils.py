@@ -29,7 +29,6 @@ def create_feedforward_network_binary(input_dim, output_dim, hidden_layers,
     output = keras.layers.Dense(output_dim, activation="sigmoid", bias_initializer="glorot_uniform")(output)
     return keras.Model(inputs=input, outputs=output, name=name)
 
-
 def make_lambda_layer(a, b):
     return keras.layers.Lambda(lambda x: x[:, a:b])
 
