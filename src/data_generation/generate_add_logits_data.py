@@ -1,5 +1,5 @@
 ############################################################
-# generate data for 'IsIn model' (tasks 1, 2)
+# generate data for 'addlogits model' (tasks 1, 2, ...)
 ############################################################
 
 #%%
@@ -7,24 +7,31 @@
 # path nonsense
 import os, sys
 
+# we want p = the absolute path to \src
+p = os.path.abspath('..')
+# p = os.path.abspath('./src')
+print('PATH TO src ', p)
+sys.path.insert(1, p)
+
+
 # some instructions specific to task 1
 import pickle
 
 from data_generation.generate_answer_pair_number import get_qa_numbers
 from data_generation.prepare_data_utils import task_file_reader
-from discocirc.discocirc_utils import get_star_removal_functor
-from discocirc.text_to_circuit import sentence_list_to_circuit
+from discocirc.helpers.discocirc_utils import get_star_removal_functor
+from discocirc.pipeline.text_to_circuit import sentence_list_to_circuit
 
 
-TASK_FILE = '/../../data/tasks_1-20_v1-2/en/qa2_two-supporting-facts_train.txt'
-SAVE_FILE = '/../../data/pickled_dataset/test_dataset_task2_train.pkl'
+TASK_FILE = '/data/tasks_1-20_v1-2/en/qa12_conjunction_train.txt'
+SAVE_FILE = '/data/pickled_dataset/test_dataset_task12_train.pkl'
 
 #%%
 
-# want p = absolute path to \Neural-DisCoCirc
-# p = os.path.abspath('../..')
-p = os.path.abspath('.')
-print('PATH TO Neural-DisCoCirc: ', p)
+# want p = absolute path to \neural_discocirc
+p = os.path.abspath('../..')
+# p = os.path.abspath('.')
+print('PATH TO neural_discocirc: ', p)
 contexts, questions, answers = task_file_reader(p+TASK_FILE)
 
 # # smaller dataset for testing
