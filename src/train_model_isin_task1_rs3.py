@@ -89,7 +89,7 @@ def train(base_path, save_path, vocab_path,
 
     train_dataset, validation_dataset = train_test_split(dataset,
                                                          test_size=0.1,
-                                                         random_state=1)
+                                                         random_state=42)
 
     discocirc_trainer.compile(
         optimizer=keras.optimizers.Adam(learning_rate=config["learning_rate"]),
@@ -157,7 +157,7 @@ def train(base_path, save_path, vocab_path,
 
 
 if config["log_wandb"]:
-    wandb.init(project="final_runs", name="isin_task1_run01_rs1", entity="sarajones", config=config)
+    wandb.init(project="final_runs", name="isin_task1_run03_rs42", entity="sarajones", config=config)
 
 if __name__ == "__main__":
     train(base_path,

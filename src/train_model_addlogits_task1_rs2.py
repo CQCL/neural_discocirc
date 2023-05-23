@@ -43,17 +43,17 @@ base_path = os.path.abspath('..')
 # base_path = os.path.abspath('.')
 config = {
     "batch_size": 32,
-    "dataset": "isin_dataset_task1_train.pkl",
+    "dataset": "add_logits_dataset_task1_train.pkl",
     "epochs": 100,
     "learning_rate": 0.01,
     "log_wandb": True,
-    "trainer": IsInOneNetworkTrainer,
+    "trainer": AddLogitsOneNetworkTrainer,
     "vocab": "en_qa1.p",
 }
 model_config = {
     "hidden_layers": [10, 10],
     # "is_in_hidden_layers": [10, 10],
-    # "is_in_hidden_layers": [10, 10],
+    "is_in_hidden_layers": [10, 10],
     "wire_dimension": 10,
     # "softmax_relevancies": False,
     # "softmax_logits": False,
@@ -85,11 +85,11 @@ def train(base_path, save_path, vocab_path,
     with open(base_path + data_path + config['dataset'],
               "rb") as f:
         # dataset is a tuple (context_circuit,(question_word_index, answer_word_index))
-        dataset = pickle.load(f) #[:10]
+        dataset = pickle.load(f)#[:10]
 
     train_dataset, validation_dataset = train_test_split(dataset,
                                                          test_size=0.1,
-                                                         random_state=1)
+                                                         random_state=21)
 
     discocirc_trainer.compile(
         optimizer=keras.optimizers.Adam(learning_rate=config["learning_rate"]),
@@ -157,7 +157,7 @@ def train(base_path, save_path, vocab_path,
 
 
 if config["log_wandb"]:
-    wandb.init(project="final_runs", name="isin_task1_run01_rs1", entity="sarajones", config=config)
+    wandb.init(project="final_runs", name="add_logits_task1_run02_rs21", entity="sarajones", config=config)
 
 if __name__ == "__main__":
     train(base_path,
