@@ -14,6 +14,7 @@ print('PATH TO src ', p)
 sys.path.insert(1, p)
 
 
+
 # some instructions specific to task 1
 import pickle
 
@@ -31,7 +32,7 @@ from discocirc.helpers.discocirc_utils import get_star_removal_functor
 from discocirc.pipeline.text_to_circuit import sentence_list_to_circuit
 
 
-TASK_FILE = '/data/tasks_1-20_v1-2/en/qa10_indefinite-knowledge_train.txt'
+TASK_FILE = '/data/tasks_1-20_v1-2/en/qa10_indefinite-knowledge_train_NO_REPEATS.txt'
 # TASK_FILE = '/../../data/tasks_1-20_v1-2/en/qa15_basic-deduction_train.txt'
 SAVE_FILE = '/data/pickled_dataset/add_logits_dataset_task10_train.pkl'
 # SAVE_FILE = '../../data/pickled_dataset/add_logits_dataset_task15_train_lem_all_lower.pkl'

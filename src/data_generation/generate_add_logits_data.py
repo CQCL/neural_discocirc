@@ -1,5 +1,6 @@
 ############################################################
 # generate data for 'IsIn model' (tasks 1, 2)
+
 ############################################################
 
 #%%
@@ -16,8 +17,8 @@ from discocirc.discocirc_utils import get_star_removal_functor
 from discocirc.text_to_circuit import sentence_list_to_circuit
 
 
-TASK_FILE = '/../../data/tasks_1-20_v1-2/en/qa2_two-supporting-facts_train.txt'
-SAVE_FILE = '/../../data/pickled_dataset/test_dataset_task2_train.pkl'
+TASK_FILE = '/../../data/tasks_1-20_v1-2/en/qa4_two-arg-relations_train.txt'
+SAVE_FILE = '/../../data/pickled_dataset/add_logits_dataset_task4_train.pkl'
 
 #%%
 
