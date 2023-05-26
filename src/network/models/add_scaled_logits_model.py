@@ -54,8 +54,8 @@ class AddScaledLogitsModel(ModelBaseClass):
     def get_answer_prob(self, contexts, questions):
         num_wires = contexts.shape[1] // self.wire_dimension
         output_wires = tf.split(contexts, num_wires, axis=1)
-        questions = [(int(person), i) for i, person in enumerate(questions)]
-        person_vectors = tf.gather_nd(output_wires, questions)
+        questions = [(int(person[0]), i) for i, person in enumerate(questions)]
+        question_wires = tf.gather_nd(output_wires, questions)
 
         # TODO: stack for efficiency
         # stack = tf.concat([tf.concat([person_vectors, output_wires[i]], axis=1) for i in range(num_wires)], axis=0)
@@ -65,9 +65,10 @@ class AddScaledLogitsModel(ModelBaseClass):
         for i in range(num_wires):
             relevance.append(tf.squeeze(
                 self.relevance_question(
-                    tf.concat([person_vectors, output_wires[i]], axis=1)
+                    tf.concat([question_wires, output_wires[i]], axis=1)
                 ), axis=1
             ))
+
         relevance = tf.convert_to_tensor(relevance)
         if self.softmax_relevancies:
             relevance = tf.nn.softmax(relevance)
@@ -75,7 +76,7 @@ class AddScaledLogitsModel(ModelBaseClass):
         logit_sum = tf.zeros((len(contexts), len(self.vocab_dict)))
         for i in range(num_wires):
             logits = self.is_in_question(
-                tf.concat([person_vectors, output_wires[i]], axis=1)
+                tf.concat([question_wires, output_wires[i]], axis=1)
             )
             logits = tf.convert_to_tensor(logits)
             if self.softmax_logits:
@@ -99,4 +100,4 @@ class AddScaledLogitsModel(ModelBaseClass):
         return np.argmax(call_result)
 
     def get_expected_result(self, given_value):
-        return self.vocab_dict[given_value]
+        return self.vocab_dict[given_value[0]]

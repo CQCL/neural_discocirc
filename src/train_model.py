@@ -31,22 +31,22 @@ from sklearn.model_selection import train_test_split
 base_path = os.path.abspath('..')
 # base_path = os.path.abspath('.')
 output_config = {
+    "log_wandb": False,
+    "tb_callback": False,
     "save_model": False,
     "print_weights": False,
-    "tb_callback": False,
+    "run_test_dataset": False,
 }
 
 training_config = {
     "batch_size": 32,
     "dataset_size": 20,  # -1 for entire dataset
-    "dataset": "task01_train_dataset.pkl",
     "epochs": 20,
     "learning_rate": 0.01,
-    "log_wandb": False,
     "model": AddScaledLogitsModel,
+    "task": 1,
     # "trainer": OneNetworkTrainer,
     "trainer": IndividualNetworksTrainer,
-    "lexicon": "en_qa1.p",
 }
 
 model_configs = {
@@ -90,31 +90,34 @@ def train(base_path, save_path, vocab_path,
         model_config[val] = model_configs[val]
 
     training_config.update(model_config)
-    # TODO: training config does not have hidden layers
-    if training_config["log_wandb"]:
+    training_config['hidden_layers'] = model_configs['hidden_layers']
+    if output_config["log_wandb"]:
         print("Initialise wandb...")
         wandb.init(project="discocirc", entity="domlee",
                    config=training_config)
 
+    train_dataset_name = "task{:02d}_train.p".format(training_config["task"])
+    test_dataset_name = "task{:02d}_test.p".format(training_config["task"])
+
     print('Training: {} with trainer {} on data {}'
           .format(model_class.__name__,
                   training_config['trainer'].__name__,
-                  training_config["dataset"]))
+                  train_dataset_name))
 
     print('Loading vocabulary...')
-    with open(base_path + vocab_path + training_config["lexicon"],
+    with open(base_path + vocab_path + "en_qa{:02d}.p".format(training_config["task"]),
               'rb') as file:
         lexicon = pickle.load(file)
 
     print('Initializing trainer...')
     discocirc_trainer = training_config['trainer'](lexicon=lexicon,
                             model_class=model_class,
-                            hidden_layers=model_configs['hidden_layers'],
+                            hidden_layers=training_config['hidden_layers'],
                             **model_config
     )
 
     print('Loading pickled dataset...')
-    with open(base_path + data_path + training_config['dataset'],
+    with open(base_path + data_path + train_dataset_name,
               "rb") as f:
         # dataset is a tuple (context_circuit,(question_word_index, answer_word_index))
         dataset = pickle.load(f)
@@ -134,7 +137,7 @@ def train(base_path, save_path, vocab_path,
 
     datetime_string = datetime.now().strftime("%B_%d_%H_%M")
     validation_callback = ValidationAccuracy(discocirc_trainer.get_accuracy,
-                    interval=1, log_wandb=training_config["log_wandb"])
+                    interval=1, log_wandb=output_config["log_wandb"])
 
     print('Training...')
 
@@ -158,7 +161,7 @@ def train(base_path, save_path, vocab_path,
         )
         callbacks.append(checkpoint_callback)
 
-    if training_config["log_wandb"]:
+    if output_config["log_wandb"]:
         callbacks.append(WandbCallback())
 
     model_weights = copy.deepcopy((discocirc_trainer.model_class.weights))
@@ -182,8 +185,20 @@ def train(base_path, save_path, vocab_path,
     accuracy = discocirc_trainer.get_accuracy(discocirc_trainer.dataset)
     print("The accuracy on the train set is", accuracy)
 
-    if training_config["log_wandb"]:
+    if output_config["log_wandb"]:
         wandb.log({"train_accuracy": accuracy})
+
+    if training_config["run_test_dataset"]:
+        test_dataset_name = "task{}_test_dataset.pkl".format(training_config["task"])
+        with open(base_path + data_path + test_dataset_name, 'rb') as f:
+            test_dataset = pickle.load(f)
+
+        test_accuracy = discocirc_trainer.get_accuracy(
+            discocirc_trainer.compile_dataset(test_dataset))
+        print("The accuracy on the test set is", test_accuracy)
+
+        if training_config["log_wandb"]:
+            wandb.log({"test_accuracy": test_accuracy})
 
     if output_config['save_model']:
         save_base_path = base_path + save_path + model_class.__name__
