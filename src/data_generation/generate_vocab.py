@@ -28,6 +28,7 @@ def get_vocab_from_lines(lines):
 
         for box in line_boxes:
             if box not in vocab:
+                print(box.name, box.dom, box.cod, line)
                 vocab.append(box)
 
         if i % 50 == 0:
@@ -66,7 +67,7 @@ def run():
 
     vocab = []
     for filename in sorted(os.listdir(data_path)):
-        if "qa1_" not in filename:
+        if "qa6_" not in filename:
             continue
 
         print(filename)
@@ -82,9 +83,8 @@ def run():
 
     print(vocab)
     # save vocab file
-    pickle.dump(vocab, open(base_path+"/task_vocab_dicts/en_qa1.p", "wb"))
+    pickle.dump(vocab, open(base_path+"/task_vocab_dicts/en_qa12.p", "wb"))
 
 
 if __name__ == '__main__':
     run()
-# %%

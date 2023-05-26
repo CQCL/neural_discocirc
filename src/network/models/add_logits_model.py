@@ -10,6 +10,7 @@ class AddLogitsModel(ModelBaseClass):
                  wire_dimension,
                  is_in_hidden_layers,
                  softmax_logits,
+                 question_length=1,
                  vocab_dict=None,
                  lexicon=None,
                  is_in_question=None,
@@ -30,7 +31,7 @@ class AddLogitsModel(ModelBaseClass):
 
         if is_in_question is None:
             self.is_in_question = create_feedforward_network(
-                input_dim=2 * wire_dimension,
+                input_dim=(question_length + 1) * wire_dimension,
                 output_dim=len(self.vocab_dict),
                 hidden_layers=is_in_hidden_layers
             )
@@ -41,13 +42,15 @@ class AddLogitsModel(ModelBaseClass):
     def get_answer_prob(self, contexts, questions):
         num_wires = contexts.shape[1] // self.wire_dimension
         output_wires = tf.split(contexts, num_wires, axis=1)
-        questions = [(int(person), i) for i, person in enumerate(questions)]
-        person_vectors = tf.gather_nd(output_wires, questions)
+        questions = [
+            [(int(question[j]), i) for i, question in enumerate(questions)]
+            for j in range(len(questions[0]))]
+        question_vectors = [tf.gather_nd(output_wires, question) for question in questions]
 
         logit_sum = tf.zeros((len(contexts), len(self.vocab_dict)))
         for i in range(num_wires):
             logit = self.is_in_question(
-                tf.concat([person_vectors, output_wires[i]], axis=1)
+                tf.concat([tf.concat(question_vectors, axis=1), output_wires[i]], axis=1)
             )
 
             logit = tf.convert_to_tensor(logit)
@@ -71,4 +74,4 @@ class AddLogitsModel(ModelBaseClass):
         return np.argmax(call_result)
 
     def get_expected_result(self, given_value):
-        return self.vocab_dict[given_value]
+        return self.vocab_dict[given_value[0]]

@@ -111,7 +111,7 @@ def task_file_reader(path):
     answers = [qna.split('\t')[1].lower() for qna in qnas]
     return contexts, questions, answers
 
-def generate_data(task_file, generator):
+def generate_data(task_file, task_specifics):
     star_removal_functor = get_star_removal_functor()
     contexts, questions, answers = task_file_reader(p + task_file)
 
@@ -123,21 +123,29 @@ def generate_data(task_file, generator):
 
 
     for i, context in enumerate(contexts):
+        if task_specifics['get_question_id']:
+            context += task_specifics['get_question'](questions[i])
+
+        if task_specifics['get_answer_id']:
+            context += task_specifics['get_answer'](answers[i])
+
         context_circ = sentence_list_to_circuit(context, simplify_swaps=False,
                                                 wire_order='intro_order')
+
+        # context_circ.draw()
         dataset[i]['context_circ'] = star_removal_functor(context_circ)
 
         question_circ = sentence_list_to_circuit([questions[i][:-1]])
         dataset[i]['question_circ'] = star_removal_functor(question_circ)
 
-        dataset[i]['question'] = generator['get_question'](questions[i])
-        dataset[i]['answer'] = generator['get_answer'](answers[i])
+        dataset[i]['question'] = task_specifics['get_question'](questions[i])
+        dataset[i]['answer'] = task_specifics['get_answer'](answers[i])
 
-        if generator['get_question_id']:
+        if task_specifics['get_question_id']:
             dataset[i]['question_id'] = \
                 [find_wire(context_circ, q) for q in dataset[i]['question']]
 
-        if generator['get_answer_id']:
+        if task_specifics['get_answer_id']:
             dataset[i]['answer_id'] = \
                 [find_wire(context_circ, a) for a in dataset[i]['answer']]
 
@@ -163,13 +171,14 @@ if __name__ == "__main__":
         save_file = "task{:02d}_{}.p".format(number, type)
 
         # if number not in [15]:
-        if number not in [1, 6, 7, 9, 10, 12, 15]:
+        # if number not in [1, 6, 7, 9, 10, 12, 15]:
+        if number not in [6]:
             continue
         # if type == 'test':
         #     continue
-        if os.path.isfile(p + SAVE_BASE_PATH + save_file):
-            print("skipping because save file already exists: {}".format(filename))
-            continue
+        # if os.path.isfile(p + SAVE_BASE_PATH + save_file):
+        #     print("skipping because save file already exists: {}".format(filename))
+        #     continue
 
         try:
             generate(TASK_BASE_PATH + filename, SAVE_BASE_PATH + save_file, number)

@@ -43,7 +43,7 @@ training_config = {
     "dataset_size": 20,  # -1 for entire dataset
     "epochs": 20,
     "learning_rate": 0.01,
-    "model": AddScaledLogitsModel,
+    "model": AddLogitsModel,
     "task": 1,
     # "trainer": OneNetworkTrainer,
     "trainer": IndividualNetworksTrainer,
@@ -109,13 +109,6 @@ def train(base_path, save_path, vocab_path,
               'rb') as file:
         lexicon = pickle.load(file)
 
-    print('Initializing trainer...')
-    discocirc_trainer = training_config['trainer'](lexicon=lexicon,
-                            model_class=model_class,
-                            hidden_layers=training_config['hidden_layers'],
-                            **model_config
-    )
-
     print('Loading pickled dataset...')
     with open(base_path + data_path + train_dataset_name,
               "rb") as f:
@@ -127,6 +120,14 @@ def train(base_path, save_path, vocab_path,
     train_dataset, validation_dataset = train_test_split(dataset,
                                                          test_size=0.1,
                                                          random_state=1)
+
+    print('Initializing trainer...')
+    discocirc_trainer = training_config['trainer'](lexicon=lexicon,
+                            model_class=model_class,
+                            hidden_layers=training_config['hidden_layers'],
+                            question_length = len(dataset[0]['question']),
+                            **model_config
+    )
 
     discocirc_trainer.model_class.build([])
     discocirc_trainer.compile(
@@ -188,7 +189,7 @@ def train(base_path, save_path, vocab_path,
     if output_config["log_wandb"]:
         wandb.log({"train_accuracy": accuracy})
 
-    if training_config["run_test_dataset"]:
+    if output_config["run_test_dataset"]:
         test_dataset_name = "task{}_test_dataset.pkl".format(training_config["task"])
         with open(base_path + data_path + test_dataset_name, 'rb') as f:
             test_dataset = pickle.load(f)
