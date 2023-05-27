@@ -32,9 +32,9 @@ base_path = os.path.abspath('..')
 # base_path = os.path.abspath('.')
 output_config = {
     "log_wandb": False,
+    "wandb_project": "discocirc",
     "tb_callback": False,
     "save_model": False,
-    "print_weights": False,
     "run_test_dataset": False,
 }
 
@@ -43,10 +43,11 @@ training_config = {
     "dataset_size": 20,  # -1 for entire dataset
     "epochs": 20,
     "learning_rate": 0.001,
-    "model": AddScaledLogitsModel,
-    "task": 6,
-    # "trainer": OneNetworkTrainer,
-    "trainer": IndividualNetworksTrainer,
+    "model": AddLogitsModel,
+    "task": 12,
+    "trainer": OneNetworkTrainer,
+    # "trainer": IndividualNetworksTrainer,
+    "random_state": 1
 }
 
 model_configs = {
@@ -64,21 +65,6 @@ model_configs = {
     "lstm_dimension": 10,
 }
 
-
-def print_weights(pre_training, post_training):
-    print(len(pre_training), len(post_training))
-    for weight in pre_training:
-        found = False
-        for w in post_training:
-            if w.name == weight.name:
-                print(w.name)
-                print(weight - w)
-                found = True
-                break
-        if not found:
-            print("Weight not found: {}".format(weight.name))
-
-
 def train(base_path, save_path, vocab_path,
           data_path):
     model_class = training_config['model']
@@ -93,25 +79,24 @@ def train(base_path, save_path, vocab_path,
     training_config['hidden_layers'] = model_configs['hidden_layers']
     if output_config["log_wandb"]:
         print("Initialise wandb...")
-        wandb.init(project="discocirc", entity="domlee",
+        wandb.init(project=output_config["wandb_project"], entity="domlee",
                    config=training_config)
 
     train_dataset_name = "task{:02d}_train.p".format(training_config["task"])
-    test_dataset_name = "task{:02d}_test.p".format(training_config["task"])
 
     print('Training: {} with trainer {} on data {}'
           .format(model_class.__name__,
                   training_config['trainer'].__name__,
                   train_dataset_name))
 
-    print('Loading vocabulary...')
-    with open(base_path + vocab_path + "en_qa{:02d}.p".format(training_config["task"]),
-              'rb') as file:
+    vocab_file = base_path + vocab_path + "task{:02d}_train.p".format(training_config["task"])
+    print('Loading vocabulary: {}'.format(vocab_file))
+    with open(vocab_file, 'rb') as file:
         lexicon = pickle.load(file)
 
-    print('Loading pickled dataset...')
-    with open(base_path + data_path + train_dataset_name,
-              "rb") as f:
+    dataset_file = base_path + data_path + train_dataset_name
+    print('Loading pickled dataset: {}'.format(dataset_file))
+    with open(dataset_file, "rb") as f:
         # dataset is a tuple (context_circuit,(question_word_index, answer_word_index))
         dataset = pickle.load(f)
         if training_config['dataset_size'] != -1:
@@ -119,7 +104,7 @@ def train(base_path, save_path, vocab_path,
 
     train_dataset, validation_dataset = train_test_split(dataset,
                                                          test_size=0.1,
-                                                         random_state=1)
+                                                         random_state=training_config['random_state'])
 
     print('Initializing trainer...')
     discocirc_trainer = training_config['trainer'](lexicon=lexicon,
@@ -165,9 +150,6 @@ def train(base_path, save_path, vocab_path,
     if output_config["log_wandb"]:
         callbacks.append(WandbCallback())
 
-    model_weights = copy.deepcopy((discocirc_trainer.model_class.weights))
-    trainer_weights = copy.deepcopy((discocirc_trainer.weights))
-
     discocirc_trainer.fit(
         train_dataset,
         validation_dataset,
@@ -175,13 +157,6 @@ def train(base_path, save_path, vocab_path,
         batch_size=training_config['batch_size'],
         callbacks=callbacks
     )
-
-    if output_config['print_weights']:
-        print("----- Trainer weights: ------")
-        print_weights(trainer_weights, discocirc_trainer.weights)
-
-        print("----- Model weights: ------")
-        print_weights(model_weights, discocirc_trainer.model_class.weights)
 
     accuracy = discocirc_trainer.get_accuracy(discocirc_trainer.dataset)
     print("The accuracy on the train set is", accuracy)
