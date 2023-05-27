@@ -5,7 +5,9 @@ from inspect import signature
 
 from network.models.add_logits_model import AddLogitsModel
 from network.models.add_scaled_logits_model import AddScaledLogitsModel
-from network.models.is_in_model import IsInModel
+from network.models.is_in_max_wire_model import IsInMaxWireModel
+
+from network.models.is_in_relation import IsInRelationModel
 from network.models.lstm_model import LSTMModel
 from network.models.textspace_model import TextspaceModel
 from network.models.weighted_sum_of_wires_one_network import \
@@ -43,8 +45,8 @@ training_config = {
     "dataset_size": 20,  # -1 for entire dataset
     "epochs": 20,
     "learning_rate": 0.001,
-    "model": AddLogitsModel,
-    "task": 12,
+    "model": IsInMaxWireModel,
+    "task": 1,
     "trainer": OneNetworkTrainer,
     # "trainer": IndividualNetworksTrainer,
     "random_state": 1

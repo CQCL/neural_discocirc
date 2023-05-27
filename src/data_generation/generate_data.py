@@ -69,7 +69,7 @@ task_specifics = {
     # 8 Gertrude is a wolf.
     # 9 What is emily afraid of?	wolf	7 5
     15: {'get_question': lambda q: [q.split()[-3]],
-        'get_answer': lambda a: [animal_dict[a]], # has to be plural as otherwise the answer may not yet have appeard in the context
+        'get_answer': lambda a: [a], # has to be plural as otherwise the answer may not yet have appeard in the context
         'get_question_id': True,
         'get_answer_id': True},
 
@@ -177,7 +177,7 @@ def generate(task_file, task_number, task_type):
         pickle.dump(dataset, f)
 
     with open(p + vocab_save_file, "wb") as f:
-        pickle.dump(dataset, f)
+        pickle.dump(vocab, f)
 
 
 if __name__ == "__main__":
@@ -188,7 +188,7 @@ if __name__ == "__main__":
 
         # if number not in [15]:
         # if number not in [1, 6, 7, 9, 10, 12, 15]:
-        if number not in [10]:
+        if number not in [15]:
             continue
         # if type == 'test':
         #     continue
