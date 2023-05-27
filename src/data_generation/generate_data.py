@@ -2,12 +2,14 @@ import os, sys
 
 import pickle
 
+from discopy.monoidal import Box, Ty
+
 from data_generation.generate_answer_pair_number import find_wire
 from discocirc.helpers.discocirc_utils import get_star_removal_functor
 from discocirc.pipeline.text_to_circuit import sentence_list_to_circuit
 
 TASK_BASE_PATH = '/data/tasks_1-20_v1-2/en/'
-SAVE_BASE_PATH = '/data/pickled_dataset/'
+SAVE_BASE_PATH = '/data/'
 # want p = absolute path to \Neural-DisCoCirc
 p = os.path.abspath('../..')
 # p = os.path.abspath('..')
@@ -120,7 +122,7 @@ def generate_data(task_file, task_specifics):
     # answers = answers[:20]
 
     dataset = [{} for _ in range(len(contexts))]
-
+    vocab = []
 
     for i, context in enumerate(contexts):
         if task_specifics['get_question_id']:
@@ -129,6 +131,7 @@ def generate_data(task_file, task_specifics):
         if task_specifics['get_answer_id']:
             context += task_specifics['get_answer'](answers[i])
 
+        print(context)
         context_circ = sentence_list_to_circuit(context, simplify_swaps=False,
                                                 wire_order='intro_order')
 
@@ -138,8 +141,18 @@ def generate_data(task_file, task_specifics):
         question_circ = sentence_list_to_circuit([questions[i][:-1]])
         dataset[i]['question_circ'] = star_removal_functor(question_circ)
 
+        for box in context_circ.boxes + question_circ.boxes:
+            if box not in vocab:
+                print(box.name, box.dom, box.cod)
+                vocab.append(box)
+
         dataset[i]['question'] = task_specifics['get_question'](questions[i])
         dataset[i]['answer'] = task_specifics['get_answer'](answers[i])
+
+        for name in dataset[i]['question'] + dataset[i]['answer']:
+            box = Box(name, Ty(), Ty('n'))
+            if box not in vocab:
+                vocab.append(box)
 
         if task_specifics['get_question_id']:
             dataset[i]['question_id'] = \
@@ -152,15 +165,18 @@ def generate_data(task_file, task_specifics):
         if i % 10 == 0:
             print('finished context {} out of {}'.format(i, len(contexts)))
 
-    return dataset
+    return dataset, vocab
 
-def generate(task_file, save_file, task_number):
-    print(task_file, save_file)
-    print('PATH TO Neural-DisCoCirc: ', p)
+def generate(task_file, task_number, task_type):
+    dataset_save_file = "/data/pickled_dataset/task{:02d}_{}.p".format(number, type)
+    vocab_save_file = "/data/task_vocab_dicts/task{:02d}_{}.p".format(number, type)
 
-    dataset = generate_data(task_file, task_specifics[task_number])
+    dataset, vocab = generate_data(task_file, task_specifics[task_number])
 
-    with open(p + save_file, "wb") as f:
+    with open(p + dataset_save_file, "wb") as f:
+        pickle.dump(dataset, f)
+
+    with open(p + vocab_save_file, "wb") as f:
         pickle.dump(dataset, f)
 
 
@@ -168,11 +184,11 @@ if __name__ == "__main__":
     for filename in sorted(os.listdir(p + TASK_BASE_PATH)):
         number = int(filename.split("_")[0][2:])
         type = "test" if "test" in filename else "train"
-        save_file = "task{:02d}_{}.p".format(number, type)
+
 
         # if number not in [15]:
         # if number not in [1, 6, 7, 9, 10, 12, 15]:
-        if number not in [6]:
+        if number not in [10]:
             continue
         # if type == 'test':
         #     continue
@@ -180,11 +196,8 @@ if __name__ == "__main__":
         #     print("skipping because save file already exists: {}".format(filename))
         #     continue
 
-        try:
-            generate(TASK_BASE_PATH + filename, SAVE_BASE_PATH + save_file, number)
-        except Exception as e:
-            print("skipping due to error {}".format(filename))
-            print(e)
-
-
-# %%
+        # try:
+        generate(TASK_BASE_PATH + filename, number, type)
+        # except Exception as e:
+        #     print("skipping due to error {}".format(filename))
+        #     print(e)

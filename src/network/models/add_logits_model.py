@@ -45,12 +45,12 @@ class AddLogitsModel(ModelBaseClass):
         questions = [
             [(int(question[j]), i) for i, question in enumerate(questions)]
             for j in range(len(questions[0]))]
-        question_vectors = [tf.gather_nd(output_wires, question) for question in questions]
+        question_vector = tf.concat([tf.gather_nd(output_wires, question) for question in questions], axis=1)
 
         logit_sum = tf.zeros((len(contexts), len(self.vocab_dict)))
         for i in range(num_wires):
             logit = self.is_in_question(
-                tf.concat([tf.concat(question_vectors, axis=1), output_wires[i]], axis=1)
+                tf.concat([question_vector, output_wires[i]], axis=1)
             )
 
             logit = tf.convert_to_tensor(logit)
@@ -74,4 +74,5 @@ class AddLogitsModel(ModelBaseClass):
         return np.argmax(call_result)
 
     def get_expected_result(self, given_value):
+        # TODO: figure out how to handle for tasks 8 and 19
         return self.vocab_dict[given_value[0]]

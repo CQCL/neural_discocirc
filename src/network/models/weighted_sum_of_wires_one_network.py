@@ -8,6 +8,7 @@ from utils.utils import create_feedforward_network
 class WeightedSumOfWiresModel(ModelBaseClass):
     def __init__(self,
                  wire_dimension,
+                 question_length=1,
                  vocab_dict=None,
                  lexicon=None,
                  relevance_question=None,
@@ -38,7 +39,7 @@ class WeightedSumOfWiresModel(ModelBaseClass):
 
         if relevance_question is None:
             self.relevance_question = create_feedforward_network(
-                input_dim = 2 * wire_dimension,
+                input_dim = (question_length + 1) * wire_dimension,
                 output_dim = 1,
                 hidden_layers = relevance_hidden_layers
             )
@@ -49,13 +50,15 @@ class WeightedSumOfWiresModel(ModelBaseClass):
     def get_answer_prob(self, contexts, questions):
         num_wires = contexts.shape[1] // self.wire_dimension
         output_wires = tf.split(contexts, num_wires, axis=1)
-        questions = [(int(person), i) for i, person in enumerate(questions)]
-        person_vectors = tf.gather_nd(output_wires, questions)
-
+        questions = [
+            [(int(question[j]), i) for i, question in enumerate(questions)]
+            for j in range(len(questions[0]))]
+        question_vector = tf.concat([tf.gather_nd(output_wires, question) for question
+                            in questions], axis=1)
         wire_sum = tf.zeros((len(contexts), self.wire_dimension))
         for i in range(num_wires):
             relevances = tf.squeeze(self.relevance_question(
-                    tf.concat([person_vectors, output_wires[i]], axis=1)
+                    tf.concat([question_vector, output_wires[i]], axis=1)
             ), axis=1)
             wire_sum = wire_sum + tf.einsum("ij,i->ij", output_wires[i],
                                             relevances)
@@ -77,4 +80,5 @@ class WeightedSumOfWiresModel(ModelBaseClass):
         return np.argmax(call_result)
 
     def get_expected_result(self, given_value):
-        return self.vocab_dict[given_value]
+        # TODO: figure out how to handle for tasks 8 and 19
+        return self.vocab_dict[given_value[0]]

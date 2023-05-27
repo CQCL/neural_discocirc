@@ -42,9 +42,9 @@ training_config = {
     "batch_size": 32,
     "dataset_size": 20,  # -1 for entire dataset
     "epochs": 20,
-    "learning_rate": 0.01,
-    "model": AddLogitsModel,
-    "task": 1,
+    "learning_rate": 0.001,
+    "model": AddScaledLogitsModel,
+    "task": 6,
     # "trainer": OneNetworkTrainer,
     "trainer": IndividualNetworksTrainer,
 }

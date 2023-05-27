@@ -10,6 +10,7 @@ class AddScaledLogitsModel(ModelBaseClass):
                  wire_dimension,
                  softmax_relevancies,
                  softmax_logits,
+                 question_length=1,
                  vocab_dict=None,
                  lexicon=None,
                  relevance_question=None,
@@ -34,7 +35,7 @@ class AddScaledLogitsModel(ModelBaseClass):
 
         if is_in_question is None:
             self.is_in_question = create_feedforward_network(
-                input_dim = 2 * wire_dimension,
+                input_dim = (question_length + 1) * wire_dimension,
                 output_dim = len(self.vocab_dict),
                 hidden_layers = is_in_hidden_layers
             )
@@ -43,7 +44,7 @@ class AddScaledLogitsModel(ModelBaseClass):
 
         if relevance_question is None:
             self.relevance_question = create_feedforward_network(
-                input_dim = 2 * wire_dimension,
+                input_dim = (question_length + 1) * wire_dimension,
                 output_dim = 1,
                 hidden_layers = relevance_hidden_layers
             )
@@ -54,8 +55,10 @@ class AddScaledLogitsModel(ModelBaseClass):
     def get_answer_prob(self, contexts, questions):
         num_wires = contexts.shape[1] // self.wire_dimension
         output_wires = tf.split(contexts, num_wires, axis=1)
-        questions = [(int(person[0]), i) for i, person in enumerate(questions)]
-        question_wires = tf.gather_nd(output_wires, questions)
+        questions = [
+            [(int(question[j]), i) for i, question in enumerate(questions)]
+            for j in range(len(questions[0]))]
+        question_vector = tf.concat([tf.gather_nd(output_wires, question) for question in questions], axis=1)
 
         # TODO: stack for efficiency
         # stack = tf.concat([tf.concat([person_vectors, output_wires[i]], axis=1) for i in range(num_wires)], axis=0)
@@ -65,7 +68,7 @@ class AddScaledLogitsModel(ModelBaseClass):
         for i in range(num_wires):
             relevance.append(tf.squeeze(
                 self.relevance_question(
-                    tf.concat([question_wires, output_wires[i]], axis=1)
+                    tf.concat([question_vector, output_wires[i]], axis=1)
                 ), axis=1
             ))
 
@@ -76,7 +79,7 @@ class AddScaledLogitsModel(ModelBaseClass):
         logit_sum = tf.zeros((len(contexts), len(self.vocab_dict)))
         for i in range(num_wires):
             logits = self.is_in_question(
-                tf.concat([question_wires, output_wires[i]], axis=1)
+                tf.concat([question_vector, output_wires[i]], axis=1)
             )
             logits = tf.convert_to_tensor(logits)
             if self.softmax_logits:
@@ -100,4 +103,5 @@ class AddScaledLogitsModel(ModelBaseClass):
         return np.argmax(call_result)
 
     def get_expected_result(self, given_value):
+        # TODO: figure out how to handle for tasks 8 and 19
         return self.vocab_dict[given_value[0]]

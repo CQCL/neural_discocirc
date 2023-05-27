@@ -8,6 +8,7 @@ class LSTMModel(ModelBaseClass):
     def __init__(self,
                  wire_dimension,
                  lstm_dimension,
+                 question_length=1,
                  lexicon=None,
                  vocab_dict=None,
                  lstm_model=None,
@@ -69,4 +70,5 @@ class LSTMModel(ModelBaseClass):
         return np.argmax(model_output)
 
     def get_expected_result(self, given_value):
-        return self.vocab_dict[given_value]
+        # TODO: figure out how to handle for tasks 8 and 19
+        return self.vocab_dict[given_value[0]]

@@ -11,6 +11,7 @@ class TextspaceModel(ModelBaseClass):
                  wire_dimension,
                  textspace_dimension,
                  latent_dimension,
+                 question_length=1,
                  max_wire_num=20,
                  lexicon=None,
                  vocab_dict=None,
@@ -83,4 +84,5 @@ class TextspaceModel(ModelBaseClass):
         return np.argmax(call_result)
 
     def get_expected_result(self, given_value):
-        return self.vocab_dict[given_value]
+        # TODO: figure out how to handle for tasks 8 and 19
+        return self.vocab_dict[given_value[0]]
