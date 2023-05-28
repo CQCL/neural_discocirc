@@ -18,48 +18,48 @@ task_specifics = {
     #==================== Task 1 ================================
     # 1 John travelled to the hallway.
     # 2 Mary journeyed to the bathroom.
-    # 3 Where is John? 	hallway	1
-    1: {'get_question': lambda q : [q.split()[-1][:-1]],
+    # 3 Where is John ? 	hallway	1
+    1: {'get_question': lambda q : [q.split()[-2]],
         'get_answer': lambda a: [a],
         'get_question_id': True,
         'get_answer_id': True},
     # ==================== Task 6 ================================
     # 1 Mary got the milk there.
     # 2 John moved to the bedroom.
-    # 3 Is John in the kitchen? 	no	2
-    6: {'get_question': lambda q: [q.split()[1], q.split()[-1][:-1]],
+    # 3 Is John in the kitchen ? 	no	2
+    6: {'get_question': lambda q: [q.split()[1], q.split()[-2]],
         'get_answer': lambda a: [a],
         'get_question_id': True,
         'get_answer_id': False},
     #==================== Task 7 ================================
     # 1 Mary got the milk there.
     # 2 John moved to the bedroom.
-    # 3 How many objects is Mary carrying? 	one	1
-    7: {'get_question': lambda q: [q.split()[-2]],
+    # 3 How many objects is Mary carrying ? 	one	1
+    7: {'get_question': lambda q: [q.split()[-3]],
         'get_answer': lambda a: [a],
         'get_question_id': True,
         'get_answer_id': False},
     #==================== Task 9 =================================
     # 1 John is in the hallway.
     # 2 Sandra is in the kitchen.
-    # 3 Is Sandra in the bedroom? 	no	2
-    9: {'get_question': lambda q: [q.split()[1], q.split()[-1][:-1]],
+    # 3 Is Sandra in the bedroom ? 	no	2
+    9: {'get_question': lambda q: [q.split()[1], q.split()[-2]],
         'get_answer': lambda a: [a],
         'get_question_id': True,
         'get_answer_id': False},
     #==================== Task 10 ================================
     # 1 Fred is either in the school or the park.
     # 2 Mary went back to the office.
-    # 3 Is Mary in the office? 	yes	2
-    10: {'get_question': lambda q: [q.split()[1], q.split()[-1][:-1]],
+    # 3 Is Mary in the office ? 	yes	2
+    10: {'get_question': lambda q: [q.split()[1], q.split()[-2]],
         'get_answer': lambda a: [a],
         'get_question_id': True,
         'get_answer_id': False},
     #==================== Task 12 ================================
     # 1 John and Mary travelled to the hallway.
     # 2 Sandra and Mary journeyed to the bedroom.
-    # 3 Where is Mary? 	bedroom	2
-    12: {'get_question': lambda q: [q.split()[-1][:-1]],
+    # 3 Where is Mary ? 	bedroom	2
+    12: {'get_question': lambda q: [q.split()[-2]],
         'get_answer': lambda a: [a],
         'get_question_id': True,
         'get_answer_id': True},
@@ -67,8 +67,8 @@ task_specifics = {
     # 1 Wolves are afraid of mice.
     # ...
     # 8 Gertrude is a wolf.
-    # 9 What is emily afraid of?	wolf	7 5
-    15: {'get_question': lambda q: [q.split()[-3]],
+    # 9 What is emily afraid of ?	wolf	7 5
+    15: {'get_question': lambda q: [q.split()[-4]],
         'get_answer': lambda a: [a], # has to be plural as otherwise the answer may not yet have appeard in the context
         'get_question_id': True,
         'get_answer_id': True},
@@ -109,7 +109,7 @@ def task_file_reader(path):
 
 
     # split qna into questions and answers
-    questions = [qna.split('\t')[0].lower() for qna in qnas]
+    questions = [qna.split('\t')[0].lower()[:-1] + " ?" for qna in qnas]
     answers = [qna.split('\t')[1].lower() for qna in qnas]
     return contexts, questions, answers
 
@@ -117,9 +117,9 @@ def generate_data(task_file, task_specifics):
     star_removal_functor = get_star_removal_functor()
     contexts, questions, answers = task_file_reader(p + task_file)
 
-    # contexts = contexts[:20]
-    # questions = questions[:20]
-    # answers = answers[:20]
+    contexts = contexts[:20]
+    questions = questions[:20]
+    answers = answers[:20]
 
     dataset = [{} for _ in range(len(contexts))]
     vocab = []
@@ -132,14 +132,19 @@ def generate_data(task_file, task_specifics):
             context += task_specifics['get_answer'](answers[i])
 
         print(context)
-        context_circ = sentence_list_to_circuit(context, simplify_swaps=False,
+        context_circ = star_removal_functor(
+            sentence_list_to_circuit(context, simplify_swaps=False,
                                                 wire_order='intro_order')
+        )
 
         # context_circ.draw()
-        dataset[i]['context_circ'] = star_removal_functor(context_circ)
+        dataset[i]['context_circ'] = context_circ
 
-        question_circ = sentence_list_to_circuit([questions[i][:-1]])
-        dataset[i]['question_circ'] = star_removal_functor(question_circ)
+        question_circ = star_removal_functor(
+            sentence_list_to_circuit([questions[i]], simplify_swaps=False,
+                                                wire_order='intro_order')
+        )
+        dataset[i]['question_circ'] = question_circ
 
         for box in context_circ.boxes + question_circ.boxes:
             if box not in vocab:
@@ -190,8 +195,8 @@ if __name__ == "__main__":
         # if number not in [1, 6, 7, 9, 10, 12, 15]:
         if number not in [15]:
             continue
-        # if type == 'test':
-        #     continue
+        if type == 'test':
+            continue
         # if os.path.isfile(p + SAVE_BASE_PATH + save_file):
         #     print("skipping because save file already exists: {}".format(filename))
         #     continue

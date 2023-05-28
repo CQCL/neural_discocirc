@@ -24,8 +24,9 @@ class AddLogitsModel(ModelBaseClass):
 
         if vocab_dict is None:
             self.vocab_dict = {}
-            for i, v in enumerate(lexicon):
-                self.vocab_dict[v.name] = i
+            for v in lexicon:
+                if v.name not in self.vocab_dict.keys():
+                    self.vocab_dict[v.name] = len(self.vocab_dict)
         else:
             self.vocab_dict = vocab_dict
 
