@@ -72,7 +72,15 @@ task_specifics = {
         'get_answer': lambda a: [a], # has to be plural as otherwise the answer may not yet have appeard in the context
         'get_question_id': True,
         'get_answer_id': True},
-
+    #==================== Task 16 ================================
+    # 1 Lily is a frog.
+    # ...
+    # 9 Greg is a swan.
+    # 10 What color is Greg?	green	9 6 7
+    16: {'get_question': lambda q: [q.split()[-2]],
+        'get_answer': lambda a: [a],
+        'get_question_id': True,
+        'get_answer_id': False},
 }
 
 # read the .txt file
@@ -109,7 +117,7 @@ def task_file_reader(path):
 
 
     # split qna into questions and answers
-    questions = [qna.split('\t')[0].lower()[:-1] + " ?" for qna in qnas]
+    questions = [qna.split('\t')[0].lower().rstrip()[:-1] + " ?" for qna in qnas]
     answers = [qna.split('\t')[1].lower() for qna in qnas]
     return contexts, questions, answers
 
@@ -117,9 +125,9 @@ def generate_data(task_file, task_specifics):
     star_removal_functor = get_star_removal_functor()
     contexts, questions, answers = task_file_reader(p + task_file)
 
-    contexts = contexts[:20]
-    questions = questions[:20]
-    answers = answers[:20]
+    # contexts = contexts[:20]
+    # questions = questions[:20]
+    # answers = answers[:20]
 
     dataset = [{} for _ in range(len(contexts))]
     vocab = []
@@ -190,18 +198,21 @@ if __name__ == "__main__":
         number = int(filename.split("_")[0][2:])
         type = "test" if "test" in filename else "train"
 
-
         # if number not in [15]:
         # if number not in [1, 6, 7, 9, 10, 12, 15]:
-        if number not in [15]:
+        if number not in [9]:
             continue
         if type == 'test':
             continue
+
+        # if not "NO_REPEATS" in filename:
+        #     continue
         # if os.path.isfile(p + SAVE_BASE_PATH + save_file):
         #     print("skipping because save file already exists: {}".format(filename))
         #     continue
 
         # try:
+        print("generating {}".format(filename))
         generate(TASK_BASE_PATH + filename, number, type)
         # except Exception as e:
         #     print("skipping due to error {}".format(filename))
