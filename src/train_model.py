@@ -45,11 +45,13 @@ training_config = {
     "dataset_size": 20,  # -1 for entire dataset
     "epochs": 20,
     "learning_rate": 0.001,
-    "model": IsInMaxWireModel,
+    "model": AddLogitsModel,
     "task": 1,
     "trainer": OneNetworkTrainer,
     # "trainer": IndividualNetworksTrainer,
-    "random_state": 1
+    # "dataset_split": ("random", 1), # (split_type, random state)
+    "dataset_split": ("depth", [1]) # (split_type, depths of training set)
+
 }
 
 model_configs = {
@@ -66,6 +68,31 @@ model_configs = {
     "qna_hidden_layers": [10, 10],
     "lstm_dimension": 10,
 }
+
+
+def train_test_depth_split(dataset, training_depths):
+    split_datasets = []
+    previous_length = 0
+    counter = 0
+    for q in dataset:
+        if len(q['context_circ']) < previous_length:
+            counter = 0
+        previous_length = len(q['context_circ'])
+        if len(split_datasets) <= counter:
+            split_datasets.append([])
+        split_datasets[counter].append(q)
+        counter += 1
+
+    training_dataset = []
+    validation_dataset = []
+    for i, set in enumerate(split_datasets):
+        if i in training_depths:
+            training_dataset += split_datasets[i]
+        else:
+            validation_dataset += split_datasets[i]
+
+    return training_dataset, validation_dataset
+
 
 def train(base_path, save_path, vocab_path,
           data_path):
@@ -104,10 +131,14 @@ def train(base_path, save_path, vocab_path,
         if training_config['dataset_size'] != -1:
             dataset = dataset[:training_config['dataset_size']]
 
-    train_dataset, validation_dataset = train_test_split(dataset,
+    print('Splitting dataset...')
+    if training_config['dataset_split'][0] == 'random':
+        train_dataset, validation_dataset = train_test_split(dataset,
                                                          test_size=0.1,
-                                                         random_state=training_config['random_state'])
-
+                                                         random_state=training_config['dataset_split'][1])
+    elif training_config['dataset_split'][0] == 'depth':
+        train_dataset, validation_dataset = train_test_depth_split(dataset,
+                                                            training_depths=training_config['dataset_split'][1])
     print('Initializing trainer...')
     discocirc_trainer = training_config['trainer'](lexicon=lexicon,
                             model_class=model_class,
