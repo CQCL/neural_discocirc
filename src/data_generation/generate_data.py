@@ -69,7 +69,7 @@ task_specifics = {
     # 8 Gertrude is a wolf.
     # 9 What is emily afraid of ?	wolf	7 5
     15: {'get_question': lambda q: [q.split()[-4]],
-        'get_answer': lambda a: [a], # has to be plural as otherwise the answer may not yet have appeard in the context
+        'get_answer': lambda a: [a],
         'get_question_id': True,
         'get_answer_id': True},
     #==================== Task 16 ================================
