@@ -21,6 +21,7 @@ class TextSpace(keras.Model):
         self.wire_dim = wire_dim
         self.expansion_hidden_layers = expansion_hidden_layers
         self.contraction_hidden_layers = contraction_hidden_layers
+        self.latent_dim = latent_dim
 
         self.space_expansion = create_feedforward_network(
             self.wire_dim,
@@ -35,11 +36,14 @@ class TextSpace(keras.Model):
         )
 
     def call(self, circuit_vector):
-        circuit_vector = circuit_vector[0]
-        num_wires = circuit_vector.shape[0] // self.wire_dim
-        wire_vectors = tf.split(circuit_vector, num_or_size_splits=num_wires, axis=0)
+        num_wires = circuit_vector.shape[1] // self.wire_dim
+        wire_vectors = tf.split(circuit_vector, num_wires, axis=1)
         wire_vectors = tf.convert_to_tensor(wire_vectors)
-        expanded_vectors = self.space_expansion(wire_vectors)
-        latent_vector = tf.reduce_sum(expanded_vectors, axis=0)
-        textspace_vector = self.space_contraction(tf.expand_dims(latent_vector, axis=0))
+
+        latent_vectors = tf.zeros((circuit_vector.shape[0], self.latent_dim))
+        for i in range(num_wires):
+            expanded_vectors = self.space_expansion(wire_vectors[i])
+            latent_vectors = latent_vectors + expanded_vectors
+
+        textspace_vector = self.space_contraction(latent_vectors)
         return textspace_vector

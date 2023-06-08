@@ -1,4 +1,5 @@
 # %%
+from discocirc.pipeline.text_to_circuit import sentence_list_to_circuit
 
 import os
 import sys
@@ -6,78 +7,84 @@ p = os.path.abspath('..') # this should be the path to \src
 print("THE PATH TO src: ", p)
 sys.path.insert(1, p)
 
-from discocirc.sentence_to_circuit import convert_sentence  # Richie's CCG to Circ
-from lambeq import BobcatParser
-from discocirc.discocirc_utils import get_star_removal_functor
+from discocirc.helpers.discocirc_utils import get_star_removal_functor
 import pickle   # for saving vocab file
 
-parser = BobcatParser(verbose='suppress')
+def get_vocab_from_lines(lines):
+    functor = get_star_removal_functor()
+    vocab = []
+    for i, line in enumerate(lines):
 
-#%%
-# read the file
-path = os.path.abspath('../..') # this should be the path to \Neural-DisCoCirc
-print("THE PATH TO Neural-DisCoCirc: ", path)
+        # obtain circ for the line
+        # print(line.lower())
+        line_circ = sentence_list_to_circuit([line.lower()],
+                                             simplify_swaps=False,
+                                             wire_order='intro_order')
 
-with open(path+'/data/tasks_1-20_v1-2/en/qa1_single-supporting-fact_train.txt') as f:
-    lines = f.readlines()
+        # apply the star removal functor
+        line_circ = functor(line_circ)
 
+        line_boxes = line_circ.boxes
 
-# %%
-# filter out the lines involving questions for now
-no_question_lines = [line for line in lines if '?' not in line]
-# delete initial line numbers
-no_question_lines = [' '.join(line.split(' ')[1:]) for line in no_question_lines]
-# delete . and \n
-no_question_lines = [line.replace('\n','').replace('.',' ') for line in no_question_lines]
+        for box in line_boxes:
+            if box not in vocab:
+                print(box.name, box.dom, box.cod, line)
+                vocab.append(box)
 
+        if i % 50 == 0:
+            print("{} of {}".format(i, len(lines)))
+            print("vocab size = {}".format(len(vocab)))
 
-# %%
-# record all unique vocabulary boxes (word, CCG type)
+    return vocab
 
-vocab = []
+def get_vocab_from_file(all_lines):
+    # delete initial line numbers
+    all_lines = [' '.join(line.split(' ')[1:]) for line in
+                     all_lines]
 
-# get the star removal functor to deal with frames
-functor = get_star_removal_functor()
+    # filter out the lines involving questions for now
+    context_lines = [line for line in all_lines if '?' not in line]
+    question_lines = [line for line in all_lines if '?' in line]
 
-for i, line in enumerate(no_question_lines):
+    # delete . and \n
+    context_lines = [line.replace('\n', '').replace('.', ' ') for line in
+                         context_lines]
 
-    # obtain circ for the line
-    line_diag = parser.sentence2tree(line).to_biclosed_diagram()
-    try:  # TODO: sentences invovlving cross-composition are not supported yet
-        line_circ = convert_sentence(line_diag)
-    except:
-        print("problematic line: {}".format(line))
+    questions = [line.split('\t')[0].split('?')[0] for line in question_lines]
+    answers = [line.split('\t')[1] for line in question_lines]
 
-    # apply the star removal functor
-    line_circ = functor(line_circ)
-
-    line_boxes = line_circ.boxes
-
-    for box in line_boxes:
-        if box not in vocab:
-            vocab.append(box)
-
-    if i % 50 == 0:
-        print("{} of {}".format(i,len(no_question_lines)))
-        print("vocab size = {}".format(len(vocab)))
-
-print(vocab)
-
-#%%
-
-# add additional vocab from questions, using a representative question
-line_diag = parser.sentence2tree('Where is the apple').to_biclosed_diagram()
-line_circ = convert_sentence(line_diag)
-# star removal
-line_circ = functor(line_circ)
-line_boxes = line_circ.boxes
-for box in line_boxes:
-    if box not in vocab:
-        vocab.append(box)
+    return get_vocab_from_lines(context_lines + questions + answers)
 
 
-#%%
-# save vocab file
-pickle.dump(vocab, open(path+"/data/task_vocab_dicts/en_qa2.p", "wb"))
 
-# %%
+
+def run():
+    #%%
+    # read the file
+    base_path = os.path.abspath('../../data/')
+    data_path = base_path + "/tasks_1-20_v1-2/en/"
+    print("THE PATH TO Neural-DisCoCirc: ", data_path)
+
+    vocab = []
+    for filename in sorted(os.listdir(data_path)):
+        if "qa6_" not in filename:
+            continue
+
+        print(filename)
+        with open(data_path + "/" + filename) as f:
+            lines = f.readlines()
+
+        file_vocab = get_vocab_from_file(lines)
+        for v in file_vocab:
+            if v not in vocab:
+                vocab.append(v)
+
+        print("===== File complete. Vocab size: {} =====".format(len(vocab)))
+
+    print(vocab)
+    # save vocab file
+    pickle.dump(vocab, open(base_path+"/task_vocab_dicts/en_qa12.p", "wb"))
+
+
+if __name__ == '__main__':
+    run()
