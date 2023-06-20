@@ -198,7 +198,8 @@ def train(base_path, save_path, vocab_path,
         wandb.log({"train_accuracy": accuracy})
 
     if output_config["run_test_dataset"]:
-        test_dataset_name = "task{}_test_dataset.pkl".format(training_config["task"])
+        print("Getting the test accuracy")
+        test_dataset_name = "task{:02d}_test.p".format(training_config["task"])
         with open(base_path + data_path + test_dataset_name, 'rb') as f:
             test_dataset = pickle.load(f)
 
@@ -206,7 +207,7 @@ def train(base_path, save_path, vocab_path,
             discocirc_trainer.compile_dataset(test_dataset))
         print("The accuracy on the test set is", test_accuracy)
 
-        if training_config["log_wandb"]:
+        if output_config["log_wandb"]:
             wandb.log({"test_accuracy": test_accuracy})
 
     if output_config['save_model']:
@@ -219,7 +220,7 @@ def train(base_path, save_path, vocab_path,
 
         shutil.make_archive(name, 'zip', name)
 
-        if training_config["log_wandb"]:
+        if output_config["log_wandb"]:
             wandb.save(name + '.zip')
 
 
