@@ -145,7 +145,7 @@ def train(base_path, save_path, vocab_path, data_path):
                             **model_config
     )
 
-    discocirc_trainer.model_class.build([])
+    discocirc_trainer.model.build([])
     discocirc_trainer.compile(
         optimizer=keras.optimizers.Adam(
             learning_rate=training_config["learning_rate"]),
