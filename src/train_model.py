@@ -30,28 +30,27 @@ from utils.callbacks import ValidationAccuracy, \
 from sklearn.model_selection import train_test_split
 
 # this should the path to \Neural-DisCoCirc
-base_path = os.path.abspath('..')
-# base_path = os.path.abspath('.')
+# base_path = os.path.abspath('..')
+base_path = os.path.abspath('.')
 output_config = {
     "log_wandb": False,
     "wandb_project": "discocirc",
     "tb_callback": False,
-    "save_model": False,
+    "save_model": True,
     "run_test_dataset": False,
 }
 
 training_config = {
     "batch_size": 32,
-    "dataset_size": 20,  # -1 for entire dataset
-    "epochs": 20,
+    "dataset_size": 10,  # -1 for entire dataset
+    "epochs": 5,
     "learning_rate": 0.001,
     "model": AddLogitsModel,
     "task": 1,
     "trainer": OneNetworkTrainer,
     # "trainer": IndividualNetworksTrainer,
-    # "dataset_split": ("random", 1), # (split_type, random state)
-    "dataset_split": ("depth", [1]) # (split_type, depths of training set)
-
+    "dataset_split": ("random", 1), # (split_type, random state)
+    # "dataset_split": ("depth", [1]) # (split_type, depths of training set)
 }
 
 model_configs = {
@@ -94,8 +93,7 @@ def train_test_depth_split(dataset, training_depths):
     return training_dataset, validation_dataset
 
 
-def train(base_path, save_path, vocab_path,
-          data_path):
+def train(base_path, save_path, vocab_path, data_path):
     model_class = training_config['model']
     print('Create model_config...')
     model_config = {}

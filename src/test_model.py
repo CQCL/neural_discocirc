@@ -6,28 +6,22 @@ from pandas import DataFrame
 import pickle
 from tensorflow import keras
 
-from network.big_network_models.add_scaled_logits_one_network import \
-    AddScaledLogitsOneNetworkTrainer
-from network.big_network_models.is_in_one_network import \
-    IsInOneNetworkTrainer
-from network.big_network_models.one_network_trainer_base import OneNetworkTrainer
-from network.individual_networks_models.individual_networks_trainer_base_class import \
-    IndividualNetworksTrainer
-from network.individual_networks_models.is_in_trainer import \
-    IsInIndividualNetworksTrainer
+print("test")
+
+from network.models.add_logits_model import AddLogitsModel
+from network.trainers.one_network_trainer import OneNetworkTrainer
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # this should the the path to \Neural-DisCoCirc
-base_path = os.path.abspath('..')
-# base_path = os.path.abspath('.')
+# base_path = os.path.abspath('..')
+base_path = os.path.abspath('.')
 
 config = {
     "trainer": OneNetworkTrainer,
-    "model_class": IsInOneNetworkTrainer,
-    "dataset": "isin_dataset_task1_test.pkl",
-    "vocab": "en_qa1.p",
-    "model": "IsInOneNetworkTrainer/IsInOneNetworkTrainer_Oct_12_16_36"
+    "model_class": AddLogitsModel,
+    "task": 1,
+    "model": "AddLogitsModel/AddLogitsModel_Jul_26_16_43",
 }
 
 def create_answer_dataframe(discocirc_trainer, vocab_dict, dataset):
@@ -53,24 +47,28 @@ def create_answer_dataframe(discocirc_trainer, vocab_dict, dataset):
     df.to_csv("answers.csv")
 
 
-def test(base_path, model_path, vocab_path, test_path):
+def test(base_path, model_path, vocab_path, data_path):
     model_base_path = base_path + model_path + config["model"]
-    test_base_path = base_path + test_path + config["dataset"]
 
     trainer_class = config["trainer"]
 
-    print('Testing: {} from path {} with data {}'
-          .format(trainer_class.__name__, model_base_path, test_base_path))
+    print('Testing: {} from path {} on task {}'
+          .format(trainer_class.__name__, model_base_path, config["task"]))
 
     print('loading vocabulary...')
-    with open(base_path + vocab_path + config["vocab"], 'rb') as file:
+    vocab_file = base_path + vocab_path + "task{:02d}_train.p".format(config["task"])
+    with open(vocab_file, 'rb') as file:
         lexicon = pickle.load(file)
 
     print('initializing model...')
     discocirc_trainer = trainer_class.load_model(model_base_path, config['model_class'])
 
+    print(type(discocirc_trainer))
+    discocirc_trainer.get_lexicon_params_from_saved_variables()
+
     print('loading pickled dataset...')
-    with open(test_base_path, "rb") as f:
+    dataset_file = base_path + data_path + "task{:02d}_train.p".format(config["task"])
+    with open(dataset_file, "rb") as f:
         dataset = pickle.load(f)[:5]
 
     print('compiling dataset (size: {})...'.format(len(dataset)))
