@@ -17,7 +17,7 @@ class TrainerBaseClass(keras.Model):
         self.wire_dimension = wire_dimension
         self.hidden_layers = hidden_layers
         self.lexicon = lexicon
-        self.model_class = model_class
+        # self.model_class = model_class
         self.model = model_class(wire_dimension=wire_dimension,
                                        lexicon=lexicon, **kwargs)
         self.model_kwargs = kwargs

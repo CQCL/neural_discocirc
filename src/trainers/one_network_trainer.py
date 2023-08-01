@@ -4,7 +4,7 @@ from discopy.monoidal import Swap
 import tensorflow as tf
 from tensorflow import keras
 
-from network.trainers.trainer_base_class import TrainerBaseClass
+from trainers.trainer_base_class import TrainerBaseClass
 from utils.utils import get_box_name, get_params_dict_from_tf_variables
 
 

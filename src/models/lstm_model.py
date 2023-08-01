@@ -2,7 +2,7 @@ import keras
 import numpy as np
 import tensorflow as tf
 
-from network.models.model_base_class import ModelBaseClass
+from models.model_base_class import ModelBaseClass
 
 class LSTMModel(ModelBaseClass):
     def __init__(self,

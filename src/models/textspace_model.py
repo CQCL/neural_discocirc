@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-from network.models.model_base_class import ModelBaseClass
+from models.model_base_class import ModelBaseClass
 from utils.circuit_to_textspace import TextSpace
 from utils.utils import create_feedforward_network
 

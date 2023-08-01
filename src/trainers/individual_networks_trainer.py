@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from network.trainers.trainer_base_class import TrainerBaseClass
+from trainers.trainer_base_class import TrainerBaseClass
 from utils.utils import get_fast_nn_functor, initialize_boxes
 
 

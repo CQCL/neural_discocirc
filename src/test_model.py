@@ -8,8 +8,8 @@ from tensorflow import keras
 
 print("test")
 
-from network.models.add_logits_model import AddLogitsModel
-from network.trainers.one_network_trainer import OneNetworkTrainer
+from models.add_logits_model import AddLogitsModel
+from trainers.one_network_trainer import OneNetworkTrainer
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
