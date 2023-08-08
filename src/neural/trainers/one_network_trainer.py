@@ -25,7 +25,7 @@ class OneNetworkTrainer(TrainerBaseClass):
                  ):
         super().__init__(wire_dimension=wire_dimension, lexicon=lexicon, hidden_layers=hidden_layers, model_class=model_class, **kwargs)
         self.dense_layer = MyDenseLayer()
-        self.initialize_lexicon_weights(lexicon)
+        self.initialize_lexicon_weights(self.lexicon)
 
     # ----------------------------------------------------------------
     # INITIALIZE WEIGHTS
@@ -351,10 +351,9 @@ class OneNetworkTrainer(TrainerBaseClass):
     # ----------------------------------------------------------------
     # SAVING AND LOADING
     # ----------------------------------------------------------------
-    @classmethod
-    def load_model_trainer(model):
-        model.get_lexicon_params_from_saved_variables()
-        return model
+    def load_model_trainer(self):
+        self.get_lexicon_params_from_saved_variables()
+        return self
 
     def get_lexicon_params_from_saved_variables(self):
         weights = [v for v in self.variables if 'weights' in v.name]

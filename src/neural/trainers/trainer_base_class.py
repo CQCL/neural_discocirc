@@ -17,7 +17,7 @@ class TrainerBaseClass(keras.Model):
         self.wire_dimension = wire_dimension
         self.hidden_layers = hidden_layers
         self.lexicon = lexicon
-        # self.model_class = model_class
+        self.model_class = model_class
         self.model = model_class(wire_dimension=wire_dimension,
                                        lexicon=lexicon, **kwargs)
         self.model_kwargs = kwargs
@@ -110,8 +110,7 @@ class TrainerBaseClass(keras.Model):
                 self.model.question_key: [dataset[self.model.question_key][i]],
                 self.model.answer_key: [dataset[self.model.answer_key][i]]
             })
-            answer_prob = self.model.get_answer_prob(contexts,
-                                                           questions)
+            answer_prob = self.model.get_answer_prob(contexts, questions)
 
             location_predicted.append(
                 self.model.get_prediction_result(answer_prob[0])

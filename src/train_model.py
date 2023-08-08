@@ -89,6 +89,10 @@ def basic_run(config: Config):
     print('Loading vocabulary: {}'.format(vocab_file))
     with open(vocab_file, 'rb') as file:
         lexicon = pickle.load(file)
+        
+    # lexicon = []
+    # for box in old_lexicon:
+        # lexicon.append(str(box))
 
     dataset_file = base_path + data_path + train_dataset_name
     print('Loading pickled dataset: {}'.format(dataset_file))
@@ -106,8 +110,8 @@ def basic_run(config: Config):
                                                          random_state=1)
 
     print('Initializing trainer...')
-    discocirc_trainer = config['trainer_class'](lexicon=lexicon,
-                            model_class=model_class,
+    discocirc_trainer = config['trainer_class'](vocab_file=vocab_file,
+                            model_class=str(model_class),
                             hidden_layers=config['neural']['hidden_layers'],
                             question_length = len(dataset[0]['question']),
                             **model_config
@@ -138,16 +142,16 @@ def basic_run(config: Config):
     if config["use_wandb"]:
         callbacks.append(WandbCallback())
 
-    discocirc_trainer.fit(
-        train_dataset,
-        validation_dataset,
-        epochs=config['epochs'],
-        batch_size=config['batch_size'],
-        callbacks=callbacks
-    )
+    # discocirc_trainer.fit(
+    #     train_dataset,
+    #     validation_dataset,
+    #     epochs=config['epochs'],
+    #     batch_size=config['batch_size'],
+    #     callbacks=callbacks
+    # )
 
-    accuracy = discocirc_trainer.get_accuracy(discocirc_trainer.dataset)
-    print("The accuracy on the train set is", accuracy)
+    # accuracy = discocirc_trainer.get_accuracy(discocirc_trainer.dataset)
+    # print("The accuracy on the train set is", accuracy)
 
     if config["use_wandb"]:
         wandb.log({"train_accuracy": accuracy})
@@ -169,9 +173,9 @@ def basic_run(config: Config):
         save_base_path = base_path + save_path + model_class.__name__
         Path(save_base_path).mkdir(parents=True, exist_ok=True)
         name = save_base_path + "/" + model_class.__name__ + "_" \
-               + datetime.utcnow().strftime("%h_%d_%H_%M")
+               + datetime.utcnow().strftime("%h_%d_%H_%M") + ".keras"
 
-        discocirc_trainer.save(name, save_traces=False)
+        discocirc_trainer.save(name)
 
         shutil.make_archive(name, 'zip', name)
 

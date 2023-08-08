@@ -21,7 +21,7 @@ config = {
     "trainer": OneNetworkTrainer,
     "model_class": AddLogitsModel,
     "task": 1,
-    "model": "AddLogitsModel/AddLogitsModel_Jul_26_16_43",
+    "model": "AddLogitsModel/AddLogitsModel_Aug_04_16_53",
 }
 
 def create_answer_dataframe(discocirc_trainer, vocab_dict, dataset):
@@ -48,7 +48,7 @@ def create_answer_dataframe(discocirc_trainer, vocab_dict, dataset):
 
 
 def test(base_path, model_path, vocab_path, data_path):
-    model_base_path = base_path + model_path + config["model"]
+    model_base_path = base_path + model_path + config["model"] + ".keras"
 
     trainer_class = config["trainer"]
 

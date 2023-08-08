@@ -3,7 +3,7 @@ import torch
 from pprint import pprint
 from config.config import get_config
 
-from config.neural_config import get_neural_config
+from shared.config.neural_config import get_neural_config
 from config.utils import Device, WandbProject
 from models.add_logits_model import AddLogitsModel
 from train_model import basic_run
@@ -39,8 +39,8 @@ config = get_config(
     batch_size=32,
     device=device,
     train_data_used=0,
-    restrict_train_data=[0],
-    restrict_valid_data=True,
+    # restrict_train_data=[0],
+    # restrict_valid_data=True,
     data_split_seed=0,
 
     save_rate=3,
