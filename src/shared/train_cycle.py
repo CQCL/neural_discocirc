@@ -3,6 +3,7 @@ import pickle
 import wandb
 from multiprocessing import Pool, Manager
 from sklearn.model_selection import train_test_split, StratifiedKFold
+from neural.utils.callbacks import ValidationAccuracy
 from shared.utils import (
     get_filename,
     setup_env,
@@ -82,7 +83,8 @@ def train(config: Config, trainer: Trainer, training_data, validation_data, star
 
         print(f"End Epoch: {epoch}    epoch_loss: {loss}")
 
-    trainer.fit(training_data, start_epoch=start_epoch, epoch_callback=epoch_callback)
+    trainer.fit(training_data, start_epoch=start_epoch, epoch_callback=ValidationAccuracy(trainer.evaluate,
+                    dataset=validation_data, interval=1, log_wandb=config['logging']['use_wandb']))
 
     return trainer
 

@@ -100,6 +100,7 @@ class TrainerBaseClass(keras.Model, Trainer):
         model = model.load_model_trainer()
         return model
 
+    # TODO: make the format of dataset match dataset everywhere else
     def call_on_dataset(self, dataset):
         called_data = {}
         for key in [self.model.context_key,
@@ -116,13 +117,13 @@ class TrainerBaseClass(keras.Model, Trainer):
         location_predicted = []
         location_true = []
 
-        for i in range(len(data[self.model.context_key])):
+        for i, entry in enumerate(data):
             print('predicting {} / {}'.format(i, len(data)), end='\r')
 
             contexts, questions, answers = self.call_on_dataset({
-                self.model.context_key: [data[self.model.context_key][i]],
-                self.model.question_key: [data[self.model.question_key][i]],
-                self.model.answer_key: [data[self.model.answer_key][i]]
+                self.model.context_key: [entry[self.model.context_key]],
+                self.model.question_key: [entry[self.model.question_key]],
+                self.model.answer_key: [entry[self.model.answer_key]]
             })
             answer_prob = self.model.get_answer_prob(contexts, questions)
 
@@ -151,5 +152,4 @@ class TrainerBaseClass(keras.Model, Trainer):
         input_index_dataset = input_index_dataset.shuffle(len(self.dataset))
         input_index_dataset = input_index_dataset.batch(self.batch_size)
 
-        # TODO: add callbacks
-        return super().fit(input_index_dataset, epochs=self.epochs, callbacks=None)
+        return super().fit(input_index_dataset, epochs=self.epochs, callbacks=epoch_callback)
