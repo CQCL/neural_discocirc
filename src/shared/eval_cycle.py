@@ -89,10 +89,10 @@ def evaluate_model(
 
         # dataset = dataset_test if dataset_name == "test" else dataset_train
         if dataset_type == "train":
-            indices = get_indices("train", config)
+            indices = get_indices("train", config["logging"])
             is_seen = True
         elif dataset_type in ["validation", "valid"]:
-            indices = get_indices("valid", config)
+            indices = get_indices("valid", config["logging"])
             is_seen = True
         elif ".stratified." in dataset_type:
             level = int(dataset_type.split(".")[2])
@@ -157,22 +157,12 @@ def evaluate_model(
     if missing:
         print("Computing the dataset accuracies...")
         # Load datasets
-        temp = get_data(
+        datasets = get_data(
             get_base_config(config), include=list(eval_dataset_names.difference("custom"))
         )
-        dataset_train, dataset_test = temp["train"], temp["test"]
-        temp = None  # free memory?
         if custom_dataset is not None:
             # attempt to load from file path
-            dataset_custom = load_custom_dataset(custom_dataset)
-        else:
-            dataset_custom = None
-
-        datasets = {
-            "train": dataset_train,
-            "test": dataset_test,
-            "custom": dataset_custom,
-        }
+            datasets["custom"] = load_custom_dataset(custom_dataset)
 
         if config["logging"]["use_wandb"]:
             # Make sure to register the artifact with wandb
@@ -180,8 +170,8 @@ def evaluate_model(
 
         print("Initialise trainer...")
         trainer: Trainer = config["trainer"]["trainer_class"](
-            dataset_train,
-            config,
+            datasets["train"],
+            config["trainer"],
         )
 
         # Compile the datasets
@@ -194,7 +184,7 @@ def evaluate_model(
 
             dataset = trainer.compile(
                 datasets[key], config["compilation"],
-                logging_config=config["logging"], data_config=config["data"], name=name
+                logging_config=config["logging"], data_config=config["data"], data_name=name
             )
             datasets[key] = dataset
 

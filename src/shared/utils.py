@@ -91,8 +91,8 @@ def get_filename(
 def setup_env(config):
     # this should be relative path to \Neural-DisCoCirc
     PICKLED_DATASET_PATH = os.path.abspath(
-        os.path.dirname(__name__) + "../../data/pickled_dataset"
-    ) + "/"  # make sure its a proper directory
+        os.path.dirname(os.path.abspath(__name__)) + "/data/pickled_dataset"
+    ) + "/"  # make sure it's a proper directory
     print("dataset path:", PICKLED_DATASET_PATH)
     config["env"]["dataset_path"] = PICKLED_DATASET_PATH
 
@@ -235,7 +235,7 @@ def load_custom_dataset(file_path: str, truncate: Optional[int] = None) -> list:
                         print(i, end="\r")
                     i += 1
                     dataset.append(pickle.load(f))
-            except Exception as e:
+            except EOFError as e:
                 print("Stopped loading data at index", i, e)
         else:
             print("entire dataset loaded")

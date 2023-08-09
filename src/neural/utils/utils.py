@@ -4,7 +4,7 @@ from discopy.monoidal import Functor
 from sklearn.metrics import accuracy_score
 from tensorflow import keras
 
-from utils.neural_network_category import Network
+from neural.utils.neural_network_category import Network
 
 
 def create_feedforward_network(input_dim, output_dim, hidden_layers,

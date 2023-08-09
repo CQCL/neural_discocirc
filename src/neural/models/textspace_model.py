@@ -1,9 +1,9 @@
 import numpy as np
 import tensorflow as tf
 
-from models.model_base_class import ModelBaseClass
-from utils.circuit_to_textspace import TextSpace
-from utils.utils import create_feedforward_network
+from neural.models.model_base_class import ModelBaseClass
+from neural.utils.circuit_to_textspace import TextSpace
+from neural.utils.utils import create_feedforward_network
 
 
 class TextspaceModel(ModelBaseClass):

@@ -4,8 +4,9 @@ from discopy.monoidal import Swap
 import tensorflow as tf
 from tensorflow import keras
 
-from trainers.trainer_base_class import TrainerBaseClass
-from utils.utils import get_box_name, get_params_dict_from_tf_variables
+from neural.trainers.trainer_base_class import TrainerBaseClass
+from neural.utils.utils import get_box_name, get_params_dict_from_tf_variables
+from shared.config.config import TrainerConfig
 
 
 class MyDenseLayer(keras.layers.Layer):
@@ -16,14 +17,8 @@ class MyDenseLayer(keras.layers.Layer):
 
 
 class OneNetworkTrainer(TrainerBaseClass):
-    def __init__(self,
-                 wire_dimension,
-                 lexicon,
-                 hidden_layers,
-                 model_class,
-                 **kwargs
-                 ):
-        super().__init__(wire_dimension=wire_dimension, lexicon=lexicon, hidden_layers=hidden_layers, model_class=model_class, **kwargs)
+    def __init__(self, _, config: TrainerConfig):
+        super().__init__(config)
         self.dense_layer = MyDenseLayer()
         self.initialize_lexicon_weights(self.lexicon)
 
@@ -276,7 +271,7 @@ class OneNetworkTrainer(TrainerBaseClass):
     # TRAIN STEP
     # ----------------------------------------------------------------
     def train_step(self, batch_index):
-        loss, grads = self.train_step_for_sample(batch_index)
+        loss, grads = self._train_step_for_sample(batch_index)
         self.optimizer.apply_gradients(
             (grad, weights)
             for (grad, weights) in zip(grads, self.trainable_weights)

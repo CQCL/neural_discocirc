@@ -15,7 +15,7 @@ class Trainer(abc.ABC):
     def __init__(self, data: list, config: TrainerConfig, **kwargs):
         """Init the trainer and model"""
 
-    def compile(self, data: list, config: CompilationConfig, **kwargs) -> list:
+    def compile_data(self, data: list, config: CompilationConfig, **kwargs) -> list:
         """Compile discopy diagrams into neural networks/quantum circuits."""
 
     def evaluate(self, data: list, **kwargs) -> Tuple[float, int]:

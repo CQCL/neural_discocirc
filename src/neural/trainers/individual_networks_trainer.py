@@ -1,7 +1,7 @@
 import tensorflow as tf
 
-from trainers.trainer_base_class import TrainerBaseClass
-from utils.utils import get_fast_nn_functor, initialize_boxes
+from neural.trainers.trainer_base_class import TrainerBaseClass
+from neural.utils.utils import get_fast_nn_functor, initialize_boxes
 
 
 class IndividualNetworksTrainer(TrainerBaseClass):
@@ -34,7 +34,7 @@ class IndividualNetworksTrainer(TrainerBaseClass):
         losses = 0
         grads = None
         for idx in batch:
-            loss, grd = self.train_step_for_sample([int(idx.numpy())])
+            loss, grd = self._train_step_for_sample([int(idx.numpy())])
             losses += loss
             if grads is None:
                 grads = grd

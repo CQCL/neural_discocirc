@@ -1,60 +1,76 @@
 import os.path
-import torch
 from pprint import pprint
-from config.config import get_config
+from neural.models.add_logits_model import AddLogitsModel
+from neural.trainers.one_network_trainer import OneNetworkTrainer
 
-from shared.config.neural_config import get_neural_config
-from config.utils import Device, WandbProject
-from models.add_logits_model import AddLogitsModel
-from train_model import basic_run
-from trainers.one_network_trainer import OneNetworkTrainer
+from shared import (
+    DecomposeFrame,
+    TextFunctor,
+    Config,
+    Device,
+    WandbProject,
+    TrainerConfig,
+    DataConfig,
+    DataSplitConfig,
+    CompilationConfig,
+    EnvConfig,
+    LoggingConfig,
+    basic_run,
+    NeuralConfig,
+)
 
-# torch device
+
+# torch device:
 # device = Device(device_type="gpu" if torch.cuda.is_available() else "cpu")
 device = Device(device_type="cpu", gpu_no=None)
 
-config = get_config(
-    neural=get_neural_config(),
-
-    # Task and dataset
-    task=1,
-    # file_prefix="isin",
-    # text_functor=TextFunctor.RemoveThe,
-    # frame_decomp=DecomposeFrame.NoDiscards,
-    # question_frame_decomp=DecomposeFrame.NameOnly,
-    # override_dataset_train_path: str
-    # override_dataset_test_path: str
-    
-    # strata=5,
-    # strata_indices_train: Union[None, str, List[int]]
-    # strata_indices_test: Union[None, str, List[int]]
-    # strata_indices_custom: Union[None, str, List[int]]  # used when specifying custom eval datasets
-
-    trainer_class=OneNetworkTrainer,
-    model_class=AddLogitsModel,
-    # init_params=CliffordParams(0, 4, 0.5),  # Default is uniform [0,2]
-
-    epochs=10,
-    learning_rate=0.001,
-    batch_size=32,
-    device=device,
-    train_data_used=0,
-    # restrict_train_data=[0],
-    # restrict_valid_data=True,
-    data_split_seed=0,
-
-    save_rate=3,
-    use_wandb=False,
-    wandb_project=WandbProject(
-        entity="domlee",
-        project="discocirc",
-        run=None
+config = Config(
+    trainer=TrainerConfig(
+        trainer_class=OneNetworkTrainer,
+        model_class=AddLogitsModel,
+        init_params=None,
+        learning_rate=0.001,
+        batch_size=5,
+        epochs=10,
+        neural=NeuralConfig(),
     ),
-    
-    # local_path=os.path.abspath('./temp/0007')
-    # dataset_path: str  # path to saved datasets. Includes trailing /
-
-
+    data=DataConfig(
+        task=1,
+        file_prefix="neural",
+        override_dataset_train_path=None,
+        override_dataset_test_path=None,
+    ),
+    compilation=CompilationConfig(
+        text_functor=TextFunctor.RemoveThe,
+        frame_decomp=DecomposeFrame.NoDiscards,
+        question_frame_decomp=DecomposeFrame.NameOnly,
+    ),
+    data_split=DataSplitConfig(
+        data_split_seed=0,
+        train_data_used=0,
+        restrict_train_data=[0],
+        restrict_valid_data=True,
+        strata=5,
+        strata_indices_train=None,
+        strata_indices_test=None,
+        strata_indices_custom=None,
+    ),
+    env=EnvConfig(
+        device=device,
+    ),
+    logging=LoggingConfig(
+        save_rate=3,
+        use_wandb=False,
+        # use_wandb=False,
+        wandb_project=WandbProject(
+            entity="domlee",
+            # project="compositionality",
+            project="is_in_prob_dist_01",
+            # run=None,
+            run="3mo9c3uh"
+        ),
+        local_path=os.path.abspath('./temp/0007')
+    ),
     # cross_validate=ValidationConfig(
     #     type="KFold",
     #     n_splits=5,
@@ -69,8 +85,7 @@ pprint(config)
 # cross_validate(config)
 basic_run(
     config,
-    # debug=None,
-    # debug=50,  # truncate dataset
-    # resume=False,
-    # resume_epoch=0,
+    debug=50,  # truncate dataset
+    resume=False,
+    resume_epoch=0,
 )

@@ -1,8 +1,8 @@
 from typing import Optional, List, Union
 from dataclasses import dataclass
-from shared.config.quantum_config import QuantumConfig, get_quantum_config
 from shared.compilation.frame import DecomposeFrame
 from shared.compilation.text_functor import TextFunctor
+from shared.config.neural_config import NeuralConfig
 from shared.trainer import Trainer, InitParams
 from .base_classes import Model
 from .utils import dictify, Device, ValidationConfig, WandbProject, EnvConfig, LoggingConfig
@@ -39,8 +39,8 @@ class TrainerConfig:
     epochs: int = 10
     learning_rate: float = 0.0005
     batch_size: int = 1
-    quantum: Optional[QuantumConfig] = None
-    # neural: Optional[NeuralConfig] = None
+    # quantum: Optional[QuantumConfig] = None
+    neural: Optional[NeuralConfig] = None
 
 
 @dictify
@@ -131,16 +131,16 @@ def get_config(**kwargs):
                     val = Device(val, None)
                 else:
                     val = Device(*val)
-            if kwarg == "init_params" and not isinstance(val, InitParams):
-                val = get_init_params_from_str(val)
+            # if kwarg == "init_params" and not isinstance(val, InitParams):
+            #     val = get_init_params_from_str(val)
             if kwarg == "trainer_class" and not isinstance(val, Trainer):
                 val = Trainer[str(val).split(".")[-1]]
             if kwarg == "model_class" and not isinstance(val, Model):
                 val = Model[str(val).split(".")[-1]]
             if kwarg == "text_functor" and not isinstance(val, TextFunctor):
                 val = TextFunctor[str(val).split(".")[-1]]
-            if kwarg == "quantum":
-                val = get_quantum_config(**val)
+            # if kwarg == "quantum":
+            #     val = get_quantum_config(**val)
             if kwarg == "wandb_project" and not isinstance(val, WandbProject):
                 val = WandbProject(*val)
 
@@ -150,17 +150,3 @@ def get_config(**kwargs):
             default_config = port_forward(kwarg, val, default_config)
 
     return default_config
-
-
-default_q_config = get_quantum_config()
-
-
-# Backwards compatible config
-def port_forward(kwarg, val, config):
-    if kwarg in default_q_config:
-        qconf = get_quantum_config(kwarg=val)
-        if config["quantum"] is None:
-            config["quantum"] = qconf
-        else:
-            config["quantum"][kwarg] = qconf[kwarg]
-    return config

@@ -1,26 +1,24 @@
 import numpy as np
 import tensorflow as tf
 
-from models.model_base_class import ModelBaseClass
-from utils.utils import create_feedforward_network
+from neural.models.model_base_class import ModelBaseClass
+from neural.utils.utils import create_feedforward_network
+from shared.config.neural_config import NeuralConfig
 
 
 class AddLogitsModel(ModelBaseClass):
     def __init__(self,
-                 wire_dimension,
-                 is_in_hidden_layers,
-                 softmax_logits,
-                 question_length=1,
+                 config:NeuralConfig,
                  vocab_dict=None,
                  lexicon=None,
                  is_in_question=None,
             ):
-        super().__init__(wire_dimension=wire_dimension,
+        super().__init__(wire_dimension=config["wire_dimension"],
                          context_key="context_circ",
                          question_key="question_id",
                          answer_key="answer")
 
-        self.softmax_logits = softmax_logits
+        self.softmax_logits = config["softmax_logits"]
 
         if vocab_dict is None:
             self.vocab_dict = {}
@@ -32,9 +30,9 @@ class AddLogitsModel(ModelBaseClass):
 
         if is_in_question is None:
             self.is_in_question = create_feedforward_network(
-                input_dim=(question_length + 1) * wire_dimension,
+                input_dim=(config["question_length"] + 1) * config["wire_dimension"],
                 output_dim=len(self.vocab_dict),
-                hidden_layers=is_in_hidden_layers
+                hidden_layers=config["is_in_hidden_layers"],
             )
         else:
             self.is_in_question = is_in_question

@@ -1,48 +1,62 @@
 from abc import abstractmethod
+import pickle
+from typing import Tuple
 
 from sklearn.metrics import accuracy_score
 from tensorflow import keras
 import tensorflow as tf
+from shared.config.config import CompilationConfig, TrainerConfig
+
+from shared.trainer.base import Trainer
 
 
-class TrainerBaseClass(keras.Model):
-    def __init__(self,
-                 wire_dimension,
-                 lexicon,
-                 hidden_layers,
-                 model_class,
-                 **kwargs
-                 ):
+class TrainerBaseClass(keras.Model, Trainer):
+    def __init__(self, config: TrainerConfig):
         super().__init__()
-        self.wire_dimension = wire_dimension
-        self.hidden_layers = hidden_layers
-        self.lexicon = lexicon
-        self.model_class = model_class
-        self.model = model_class(wire_dimension=wire_dimension,
-                                       lexicon=lexicon, **kwargs)
-        self.model_kwargs = kwargs
+        self.batch_size = config['batch_size']
+        self.epochs = config['epochs']
+        self.learning_rate = config['learning_rate']
+        
+        with open(config['neural']['lexicon_path'], 'rb') as file:
+            self.lexicon = pickle.load(file)
+            
+        self.wire_dimension = config['neural']['wire_dimension']
+        self.hidden_layers = list(config['neural']['hidden_layers'])
+        self.model_class = config['model_class']
+        self.model = self.model_class(config['neural'],
+                                       lexicon=self.lexicon)
         self.loss_tracker = keras.metrics.Mean(name="loss")
 
-    def compile_dataset(self, dataset):
+    def compile_data(self, data: list, config: CompilationConfig, **kwargs) -> list:
+        # All diagrams of one key have to be compiled at the same time. Thus we compile per key.
         compiled_data = {}
         for key in [self.model.context_key,
                     self.model.question_key,
                     self.model.answer_key]:
-            current_data = [data[key] for data in dataset]
+            current_data = [entry[key] for entry in data]
             if key in self.model.data_requiring_compilation:
                 compiled_data[key] = self.compile_diagrams(current_data)
             else:
                 compiled_data[key] = current_data
+                
+        # Bring data back into list form
+        output_data = []
+        for i in range(len(compiled_data[self.model.context_key])):
+            output_data.append({
+                self.model.context_key: compiled_data[self.model.context_key][i],
+                self.model.question_key: compiled_data[self.model.question_key][i],
+                self.model.answer_key: compiled_data[self.model.answer_key][i]
+            })
 
-        return compiled_data
+        return output_data
 
     # @tf.function
-    def train_step_for_sample(self, batch_index):
-        contexts = [self.dataset[self.model.context_key][i]
+    def _train_step_for_sample(self, batch_index):
+        contexts = [self.dataset[i][self.model.context_key]
                     for i in batch_index]
-        questions = [self.dataset[self.model.question_key][i]
+        questions = [self.dataset[i][self.model.question_key]
                     for i in batch_index]
-        answers = [self.dataset[self.model.answer_key][i]
+        answers = [self.dataset[i][self.model.answer_key]
                     for i in batch_index]
         with tf.GradientTape() as tape:
             context_output, question_output, answer_output = \
@@ -98,17 +112,17 @@ class TrainerBaseClass(keras.Model):
 
         return called_data[self.model.context_key], called_data[self.model.question_key], called_data[self.model.answer_key]
 
-    def get_accuracy(self, dataset):
+    def evaluate(self, data: list, **kwargs) -> Tuple[float, int]:
         location_predicted = []
         location_true = []
 
-        for i in range(len(dataset[self.model.context_key])):
-            print('predicting {} / {}'.format(i, len(dataset)), end='\r')
+        for i in range(len(data[self.model.context_key])):
+            print('predicting {} / {}'.format(i, len(data)), end='\r')
 
             contexts, questions, answers = self.call_on_dataset({
-                self.model.context_key: [dataset[self.model.context_key][i]],
-                self.model.question_key: [dataset[self.model.question_key][i]],
-                self.model.answer_key: [dataset[self.model.answer_key][i]]
+                self.model.context_key: [data[self.model.context_key][i]],
+                self.model.question_key: [data[self.model.question_key][i]],
+                self.model.answer_key: [data[self.model.answer_key][i]]
             })
             answer_prob = self.model.get_answer_prob(contexts, questions)
 
@@ -120,21 +134,22 @@ class TrainerBaseClass(keras.Model):
             )
 
         accuracy = accuracy_score(location_true, location_predicted)
-        return accuracy
+        return accuracy, 0
 
-    def fit(self, train_dataset, validation_dataset, epochs, batch_size=32,
-            **kwargs):
-        print('compiling train dataset (size: {})...'.
-              format(len(train_dataset)))
+    def fit(self, data: list, start_epoch=0, epoch_callback=None):
+        # TODO: this should not be here
+        self.model.build([])
+        self.compile(
+            optimizer=keras.optimizers.Adam(
+                learning_rate=0.001),
+            run_eagerly=True
+        )
+    
+        self.dataset = data
 
-        self.dataset = self.compile_dataset(train_dataset)
+        input_index_dataset = tf.data.Dataset.range(len(self.dataset))
+        input_index_dataset = input_index_dataset.shuffle(len(self.dataset))
+        input_index_dataset = input_index_dataset.batch(self.batch_size)
 
-        print('compiling validation dataset (size: {})...'
-              .format(len(validation_dataset)))
-        self.validation_dataset = self.compile_dataset(validation_dataset)
-
-        input_index_dataset = tf.data.Dataset.range(len(train_dataset))
-        input_index_dataset = input_index_dataset.shuffle(len(train_dataset))
-        input_index_dataset = input_index_dataset.batch(batch_size)
-
-        return super().fit(input_index_dataset, epochs=epochs, **kwargs)
+        # TODO: add callbacks
+        return super().fit(input_index_dataset, epochs=self.epochs, callbacks=None)

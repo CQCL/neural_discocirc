@@ -56,14 +56,14 @@ def train(config: Config, trainer: Trainer, training_data, validation_data, star
         }
         print(f"Valid skipped {valid_skipped}   valid acc {valid_accuracy}")
 
-        # Save the model params
-        model_dict = os.path.join(
+        # Save the current trainer state
+        state_dict = os.path.join(
             config["logging"]["local_path"] if not config["logging"]["use_wandb"] else wandb.run.dir,
             get_filename(config, model=True, index=epoch)
         )
-        trainer.save(model_dict)
+        trainer.save(state_dict)
         if config["logging"]["use_wandb"]:
-            wandb.save(model_dict)
+            wandb.save(state_dict)
 
         # Check performance on training dataset
         if epoch % save_rate == 0 or epoch == config["trainer"]["epochs"] - 1:
@@ -226,7 +226,7 @@ def do_basic_run(
         )
 
     # Process the datasets
-    processed_dataset_train = trainer.compile(
+    processed_dataset_train = trainer.compile_data(
         dataset_train, config["compilation"],
         data_name="train", logging_config=config["logging"], data_config=config["data"]
     )
@@ -243,20 +243,20 @@ def do_basic_run(
             config["logging"]["local_path"] if not config["logging"]["use_wandb"] else wandb.run.dir,
             get_filename(config, model=True, index=-1)
         )
-        trainer.save(filename)
+        # trainer.save(filename)
         if config["logging"]["use_wandb"]:
             run.save(filename)
 
-    try:
-        trainer = train(
-            config,
-            trainer,
-            datasets["train"],
-            datasets["valid"],
-            start_epoch=resume_epoch + 1 if resume else 0
-        )
-    except Exception as e:
-        print(f"RUN {run.id if run else ''} FAILED:\n", e)
+    # try:
+    trainer = train(
+        config,
+        trainer,
+        datasets["train"],
+        datasets["valid"],
+        start_epoch=resume_epoch + 1 if resume else 0
+    )
+    # except Exception as e:
+    #     print(f"RUN {run.id if run else ''} FAILED:\n", e)
 
     if config["logging"]["use_wandb"]:
         run.finish()

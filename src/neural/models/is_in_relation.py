@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
 
-from models.model_base_class import ModelBaseClass
-from utils.utils import create_feedforward_network
+from neural.models.model_base_class import ModelBaseClass
+from neural.utils.utils import create_feedforward_network
 
 
 class IsInRelationModel(ModelBaseClass):
